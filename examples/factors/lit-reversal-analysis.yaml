@@ -1,0 +1,86 @@
+example:
+  id: lit-reversal-2026-09-04
+  ticker: LIT
+  instrument: Global X Lithium & Battery Tech ETF
+  as_of_date: "2026-09-04"
+  purpose: demonstrate_method_not_live_recommendation
+  formula_registry_version: "0.1"
+  source:
+    provider: kiwoom
+    dataset: adjusted_us_daily_ohlcv
+    exchange_mapping: NYSE
+  coverage:
+    etf_price_history: true
+    us_listed_miner_proxies: [RIO, ALB, SQM]
+    unavailable_home_market_series: [PLS.AX, 002460.SZ, MIN.AX]
+    limitation: Constituent reversal breadth is incomplete and must not be presented as full-fund breadth.
+
+  etf_measurements:
+    close: 74.18
+    momentum.return_5d: -0.024846
+    momentum.return_20d: 0.002297
+    momentum.return_60d: -0.030834
+    reversal.drawdown_252d: -0.193520
+    reversal.range_percentile_252d: 0.5887
+    reversal.rsi_14: 41.43
+    reversal.stochastic_k_14: 21.91
+    reversal.bollinger_z_20: -1.1284
+    reversal.volume_ratio_20: 0.3223
+    reversal.up_down_volume_ratio_20: 1.5274
+    reversal.higher_low_10_20: true
+    reversal.ma20_recovery: false
+    ma20: 75.3345
+    recent_10d_low: 73.2203
+    preceding_20d_low: 66.15
+    trailing_252d_low: 48.70
+    trailing_252d_high: 91.98
+
+  evidence_groups:
+    location:
+      state: not_at_cycle_low
+      reason: Close was 52.3 percent above the trailing low and 19.4 percent below the trailing high.
+    oversold_pressure:
+      state: near_short_term_oversold
+      reason: Stochastic was near 20, while RSI was above 30 and Bollinger z was above minus 2.
+    seller_exhaustion:
+      state: mixed
+      reason: Current volume was only 0.32 times average, while up-day volume exceeded down-day volume over 20 sessions.
+    base_structure:
+      state: supportive
+      reason: The recent 10-session low was above the preceding 20-session low.
+    confirmation:
+      state: absent
+      reason: Close remained below MA20 and the 60-day return was negative.
+    fundamental_confirmation:
+      state: outside_this_price_only_example
+      reason: Lithium prices, realised producer pricing, cost curves, and announced capacity require separately dated sources.
+
+  result:
+    reversal.stage: base_forming
+    confidence: low
+    interpretation: Long-cycle low may have passed, but the current pullback bottom was not confirmed.
+    invalidation_or_upgrade_conditions:
+      upgrade: Close above MA20 with improving covered-weight breadth and RSI above 50.
+      downgrade: Fresh closing low, failed higher-low structure, or renewed downside participation.
+
+  constituent_snapshots:
+    RIO:
+      classification: diversified_miner
+      return_20d: 0.021464
+      return_60d: 0.042499
+      rsi_14: 67.50
+      ma20_recovery: true
+    ALB:
+      classification: lithium_focused_producer
+      return_20d: -0.036839
+      return_60d: -0.142236
+      rsi_14: 41.61
+      stochastic_k_14: 17.73
+      bollinger_z_20: -1.9755
+      ma20_recovery: false
+    SQM:
+      classification: lithium_exposed_diversified_producer
+      return_20d: 0.062265
+      return_60d: 0.029499
+      rsi_14: 53.69
+      ma20_recovery: false

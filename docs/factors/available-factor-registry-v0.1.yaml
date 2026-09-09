@@ -1,0 +1,406 @@
+registry:
+  id: etf-factor-registry
+  version: "0.1"
+  status: documentation_only
+  scoring_integration: false
+  missing_data: null_and_reduce_coverage
+  minimum_coverage_pct: 60
+  validation_rule: "Computable does not mean validated; production scoring requires baseline evidence."
+
+providers:
+  kiwoom:
+    tier: secondary
+    datasets: [ohlcv_daily, ohlcv_intraday, quote, order_book, trades, kr_investor_flow, kr_short_credit_lending, kr_program_flow, kr_market_indicators, fx]
+  fmp:
+    tier: secondary
+    datasets: [ohlcv_daily, quote, profile, financial_statements, ratios_ttm, key_metrics_ttm, us_etf_holdings, etf_info, treasury_curve]
+  primary:
+    tier: primary
+    datasets: [issuer_holdings, issuer_fund_facts, exchange_data, regulatory_filings, official_macro]
+
+required_metadata: [factor_id, cluster, kind, horizon, inputs, formula, direction, sources, freshness, validation, limitations]
+
+factors:
+  - factor_id: macro.rate_10y_level
+    cluster: macro_regime
+    kind: observed
+    horizon: [swing, long]
+    inputs: [us_treasury_10y]
+    formula: null
+    direction: sector_dependent
+    sources: [fmp, primary]
+    freshness: daily
+    validation: contextual_not_scored_alone
+    limitations: Level needs change and sector sign mapping.
+
+  - factor_id: macro.fx_usdkrw_change_20d
+    cluster: macro_regime
+    kind: derived
+    horizon: [swing, long]
+    inputs: [usdkrw_close]
+    formula: "close_t / close_t_minus_20 - 1"
+    direction: sector_dependent
+    sources: [kiwoom, primary]
+    freshness: daily
+    validation: research
+    limitations: Currency exposure differs by holdings and hedge policy.
+
+  - factor_id: macro.market_beta_252d
+    cluster: macro_regime
+    kind: derived
+    horizon: [long]
+    inputs: [asset_return_daily, benchmark_return_daily]
+    formula: "cov(asset, benchmark) / var(benchmark), trailing 252"
+    direction: risk_not_alpha
+    sources: [kiwoom, fmp]
+    freshness: daily
+    validation: established_risk_measure
+    limitations: Unstable across regimes.
+
+  - factor_id: value.price_to_book
+    cluster: valuation_quality
+    kind: observed
+    horizon: [long]
+    inputs: [price_to_book_ttm]
+    formula: null
+    direction: lower_requires_peer_context
+    sources: [fmp, primary]
+    freshness: quarterly
+    validation: contextual
+    limitations: Aggregate from holdings for ETFs.
+
+  - factor_id: value.ev_to_ebitda
+    cluster: valuation_quality
+    kind: observed
+    horizon: [long]
+    inputs: [enterprise_value_to_ebitda_ttm]
+    formula: null
+    direction: lower_requires_cycle_context
+    sources: [fmp, primary]
+    freshness: quarterly
+    validation: contextual
+    limitations: Negative EBITDA is not meaningful.
+
+  - factor_id: value.free_cash_flow_yield
+    cluster: valuation_quality
+    kind: observed_or_derived
+    horizon: [long]
+    inputs: [free_cash_flow, market_cap]
+    formula: "free_cash_flow_ttm / market_cap"
+    direction: higher
+    sources: [fmp, primary]
+    freshness: quarterly
+    validation: contextual
+    limitations: Cyclical capex distorts point estimates.
+
+  - factor_id: quality.return_on_equity
+    cluster: valuation_quality
+    kind: observed
+    horizon: [long]
+    inputs: [return_on_equity_ttm]
+    formula: null
+    direction: higher
+    sources: [fmp, primary]
+    freshness: quarterly
+    validation: contextual
+    limitations: Leverage and negative equity can distort it.
+
+  - factor_id: quality.net_debt_to_ebitda
+    cluster: valuation_quality
+    kind: derived
+    horizon: [long]
+    inputs: [total_debt, cash, ebitda_ttm]
+    formula: "(total_debt - cash) / ebitda_ttm"
+    direction: lower
+    sources: [fmp, primary]
+    freshness: quarterly
+    validation: contextual
+    limitations: Invalid for negative EBITDA and financial firms.
+
+  - factor_id: momentum.return_5d
+    cluster: trend_momentum
+    kind: derived
+    horizon: [short]
+    inputs: [adjusted_close]
+    formula: "close_t / close_t_minus_5 - 1"
+    direction: higher
+    sources: [kiwoom, fmp]
+    freshness: daily
+    validation: descriptive
+    limitations: Short and noisy.
+
+  - factor_id: momentum.return_20d
+    cluster: trend_momentum
+    kind: derived
+    horizon: [short, swing]
+    inputs: [adjusted_close]
+    formula: "close_t / close_t_minus_20 - 1"
+    direction: higher_with_participation
+    sources: [kiwoom, fmp]
+    freshness: daily
+    validation: production_component
+    limitations: Must be interpreted with volume.
+
+  - factor_id: momentum.return_60d
+    cluster: trend_momentum
+    kind: derived
+    horizon: [swing, long]
+    inputs: [adjusted_close]
+    formula: "close_t / close_t_minus_60 - 1"
+    direction: higher
+    sources: [kiwoom, fmp]
+    freshness: daily
+    validation: descriptive
+    limitations: Overlaps trend.
+
+  - factor_id: trend.ma20_above_ma60
+    cluster: trend_momentum
+    kind: derived
+    horizon: [swing]
+    inputs: [adjusted_close]
+    formula: "mean(close,20) > mean(close,60)"
+    direction: true_positive
+    sources: [kiwoom, fmp]
+    freshness: daily
+    validation: production_component
+    limitations: Lagging indicator.
+
+  - factor_id: momentum.relative_strength_20d
+    cluster: trend_momentum
+    kind: derived
+    horizon: [swing]
+    inputs: [asset_adjusted_close, benchmark_adjusted_close]
+    formula: "asset_return_20d - benchmark_return_20d"
+    direction: higher
+    sources: [kiwoom, fmp]
+    freshness: daily
+    validation: production_component
+    limitations: Benchmark choice must be declared before calculation.
+
+  - factor_id: reversal.drawdown_252d
+    cluster: reversal
+    kind: derived
+    horizon: [long]
+    inputs: [adjusted_close, adjusted_high]
+    formula: "close_t / max(high,252) - 1"
+    direction: diagnostic_non_monotonic
+    sources: [kiwoom, fmp]
+    freshness: daily
+    validation: descriptive_not_bottom_signal
+    limitations: A deep drawdown may be a falling knife.
+
+  - factor_id: reversal.range_percentile_252d
+    cluster: reversal
+    kind: derived
+    horizon: [long]
+    inputs: [adjusted_close, adjusted_high, adjusted_low]
+    formula: "(close-min(low,252))/(max(high,252)-min(low,252))"
+    direction: lower_means_cheaper_location_only
+    sources: [kiwoom, fmp]
+    freshness: daily
+    validation: descriptive_not_bottom_signal
+    limitations: Range endpoints are path-dependent.
+
+  - factor_id: reversal.rsi_14
+    cluster: reversal
+    kind: derived
+    horizon: [short, swing]
+    inputs: [adjusted_close]
+    formula: "Wilder RSI over 14 sessions"
+    direction: low_is_oversold_not_bullish_alone
+    sources: [kiwoom, fmp]
+    freshness: daily
+    validation: exploratory
+    limitations: Smoothing convention must be fixed.
+
+  - factor_id: reversal.stochastic_k_14
+    cluster: reversal
+    kind: derived
+    horizon: [short]
+    inputs: [adjusted_close, adjusted_high, adjusted_low]
+    formula: "100*(close-min(low,14))/(max(high,14)-min(low,14))"
+    direction: low_is_oversold_not_bullish_alone
+    sources: [kiwoom, fmp]
+    freshness: daily
+    validation: exploratory
+    limitations: Raw percent K; no smoothing.
+
+  - factor_id: reversal.bollinger_z_20
+    cluster: reversal
+    kind: derived
+    horizon: [short, swing]
+    inputs: [adjusted_close]
+    formula: "(close-mean(close,20))/population_std(close,20)"
+    direction: negative_is_stretched_not_bullish_alone
+    sources: [kiwoom, fmp]
+    freshness: daily
+    validation: exploratory
+    limitations: Assumes a locally stable volatility scale.
+
+  - factor_id: reversal.volume_ratio_20
+    cluster: reversal
+    kind: derived
+    horizon: [short]
+    inputs: [volume]
+    formula: "current_volume / mean(volume,20)"
+    direction: conditional
+    sources: [kiwoom, fmp]
+    freshness: daily_after_close
+    validation: descriptive
+    limitations: Partial sessions require time normalisation.
+
+  - factor_id: reversal.up_down_volume_ratio_20
+    cluster: reversal
+    kind: derived
+    horizon: [short, swing]
+    inputs: [adjusted_close, volume]
+    formula: "mean(up_day_volume,20) / mean(down_day_volume,20)"
+    direction: higher_supportive
+    sources: [kiwoom, fmp]
+    freshness: daily
+    validation: exploratory
+    limitations: Does not identify investor type.
+
+  - factor_id: reversal.higher_low_10_20
+    cluster: reversal
+    kind: derived
+    horizon: [swing]
+    inputs: [adjusted_low]
+    formula: "min(low,recent10) > min(low,preceding20)"
+    direction: true_supportive
+    sources: [kiwoom, fmp]
+    freshness: daily
+    validation: methodology_requirement
+    limitations: Window must be preregistered; not sufficient alone.
+
+  - factor_id: reversal.ma20_recovery
+    cluster: reversal
+    kind: derived
+    horizon: [swing]
+    inputs: [adjusted_close]
+    formula: "close > mean(close,20)"
+    direction: true_confirms
+    sources: [kiwoom, fmp]
+    freshness: daily
+    validation: confirmation_component
+    limitations: Whipsaws in sideways markets.
+
+  - factor_id: reversal.holdings_breadth_20_60
+    cluster: reversal
+    kind: derived
+    horizon: [swing]
+    inputs: [holding_weight, holding_adjusted_close]
+    formula: "sum(covered weight where MA20>MA60)/sum(covered weight)"
+    direction: higher_confirms
+    sources: [kiwoom, fmp, primary]
+    freshness: holdings_as_of_plus_daily_prices
+    validation: production_concept
+    limitations: Must publish covered weight and excluded holdings.
+
+  - factor_id: reversal.stage
+    cluster: reversal
+    kind: classified
+    horizon: [short, swing, long]
+    inputs: [reversal_location_group, reversal_oversold_group, reversal_exhaustion_group, reversal_base_group, reversal_confirmation_group, reversal_fundamental_group]
+    formula: "rule-based stage defined in reversal-methodology.md"
+    direction: ordinal_state_not_expected_return
+    sources: [derived]
+    freshness: minimum_of_inputs
+    validation: documentation_only
+    limitations: Not integrated with tools/score.py; coverage below 60 percent suspends.
+
+  - factor_id: flow.kr_institution_net_buy_streak
+    cluster: flow_liquidity
+    kind: derived
+    horizon: [short, swing]
+    inputs: [kr_institution_net_buy_daily]
+    formula: "signed consecutive trading-day count"
+    direction: positive_supportive
+    sources: [kiwoom, primary]
+    freshness: daily_after_settlement
+    validation: research
+    limitations: KR securities only; same-day fields may be provisional.
+
+  - factor_id: flow.short_balance_change_20d
+    cluster: flow_liquidity
+    kind: derived
+    horizon: [swing]
+    inputs: [short_balance]
+    formula: "short_balance_t / short_balance_t_minus_20 - 1"
+    direction: context_dependent
+    sources: [kiwoom, primary]
+    freshness: daily_or_exchange_schedule
+    validation: research
+    limitations: Rising short interest can precede either pressure or covering.
+
+  - factor_id: liquidity.dollar_volume_20d
+    cluster: flow_liquidity
+    kind: derived
+    horizon: [short, swing]
+    inputs: [adjusted_close, volume]
+    formula: "mean(close*volume,20)"
+    direction: higher_more_tradable
+    sources: [kiwoom, fmp]
+    freshness: daily
+    validation: established_liquidity_measure
+    limitations: Does not measure spread or market impact directly.
+
+  - factor_id: etf.top10_concentration
+    cluster: etf_structure
+    kind: derived
+    horizon: [long]
+    inputs: [holding_weight]
+    formula: "sum(top 10 holding weights)"
+    direction: higher_more_concentrated
+    sources: [fmp, primary]
+    freshness: issuer_schedule
+    validation: structural_measure
+    limitations: Requires complete, same-date holdings.
+
+  - factor_id: etf.theme_purity
+    cluster: theme_holdings
+    kind: derived_with_classification
+    horizon: [long]
+    inputs: [holding_weight, value_chain_classification]
+    formula: "sum(weight classified inside declared theme chain)"
+    direction: higher_more_pure_not_necessarily_better
+    sources: [fmp, primary]
+    freshness: issuer_schedule
+    validation: production_structural_measure
+    limitations: Concentration can inflate purity while chain coverage remains weak.
+
+  - factor_id: etf.pure_commodity_exposure
+    cluster: theme_holdings
+    kind: derived_with_classification
+    horizon: [long]
+    inputs: [holding_weight, revenue_exposure_classification]
+    formula: "sum(weight of pure plays); diversified producers reported separately"
+    direction: descriptive
+    sources: [fmp, primary]
+    freshness: holdings_and_filings_as_of
+    validation: research
+    limitations: Requires point-in-time segment evidence; avoid name-based classification.
+
+  - factor_id: risk.volatility_60d_annualized
+    cluster: risk
+    kind: derived
+    horizon: [swing]
+    inputs: [adjusted_close]
+    formula: "population_std(daily_returns,60)*sqrt(252)"
+    direction: higher_more_risk
+    sources: [kiwoom, fmp]
+    freshness: daily
+    validation: established_risk_measure
+    limitations: Backward-looking and regime-sensitive.
+
+  - factor_id: risk.max_drawdown_252d
+    cluster: risk
+    kind: derived
+    horizon: [long]
+    inputs: [adjusted_close]
+    formula: "min(close/running_max(close)-1, trailing252)"
+    direction: more_negative_more_risk
+    sources: [kiwoom, fmp]
+    freshness: daily
+    validation: established_risk_measure
+    limitations: Depends on window and sampling frequency.
