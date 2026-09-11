@@ -1,0 +1,28 @@
+{
+  "schema_version": "0.1",
+  "status": "case_index_only",
+  "fixture_status": "not_prepared",
+  "model_evaluation": "not_executed",
+  "data_kind": "planned_synthetic",
+  "split_policy": "family_disjoint; variants stay with their source case",
+  "cases": [
+    {"id": "D01", "split": "development", "family": "customer_roi", "axis": "drivers", "kind": "normal", "purpose": "구매 ROI와 고객 지출 전망을 실제 수주와 구분"},
+    {"id": "D02", "split": "development", "family": "demand_reprints", "axis": "drivers", "kind": "misleading", "purpose": "재인용 보도를 독립 수요 확인으로 세지 않음"},
+    {"id": "D03", "split": "development", "family": "relative_trend", "axis": "chart", "kind": "normal", "purpose": "절대 수익과 벤치마크 대비 성과를 분리"},
+    {"id": "D04", "split": "development", "family": "unadjusted_price", "axis": "chart", "kind": "misleading", "purpose": "분할 조정 불명 시 추세 해석 제한"},
+    {"id": "D05", "split": "development", "family": "investor_trade", "axis": "flows", "kind": "normal", "purpose": "순매매의 주체·종목·기간·단위 유지"},
+    {"id": "D06", "split": "development", "family": "volume_proxy", "axis": "flows", "kind": "misleading", "purpose": "거래량을 기관 유입이나 ETF 설정액으로 대체하지 않음"},
+    {"id": "D07", "split": "development", "family": "discount_rate", "axis": "macro", "kind": "normal", "purpose": "금리와 해당 ETF 노출의 전달 경로 제시"},
+    {"id": "D08", "split": "development", "family": "recession_rate", "axis": "macro", "kind": "misleading", "purpose": "금리 하락의 경기 둔화 대안과 비교"},
+    {"id": "H09", "split": "holdout", "family": "forward_comparison", "axis": "valuation", "kind": "normal", "purpose": "평가자가 준비할 배수 비교 사례"},
+    {"id": "H10", "split": "holdout", "family": "mixed_denominator", "axis": "valuation", "kind": "misleading", "purpose": "평가자가 준비할 정의 불일치 사례"},
+    {"id": "H11", "split": "holdout", "family": "weighted_holdings", "axis": "holdings", "kind": "normal", "purpose": "평가자가 준비할 보유 비중 연결 사례"},
+    {"id": "H12", "split": "holdout", "family": "partial_holdings", "axis": "holdings", "kind": "misleading", "purpose": "평가자가 준비할 보유 범위 오해 사례"},
+    {"id": "D13", "split": "development", "family": "demand_reprints", "axis": "drivers", "kind": "mutation", "transformation": "duplicate", "base_case": "D02"},
+    {"id": "D14", "split": "development", "family": "customer_roi", "axis": "drivers", "kind": "mutation", "transformation": "remove_evidence", "base_case": "D01"},
+    {"id": "D15", "split": "development", "family": "investor_trade", "axis": "flows", "kind": "mutation", "transformation": "correction", "base_case": "D05"},
+    {"id": "H16", "split": "holdout", "family": "forward_comparison", "axis": "valuation", "kind": "mutation", "transformation": "period_mismatch", "base_case": "H09"},
+    {"id": "D17", "split": "development", "family": "relative_trend", "axis": "chart", "kind": "mutation", "transformation": "reorder", "base_case": "D03"},
+    {"id": "H18", "split": "holdout", "family": "weighted_holdings", "axis": "holdings", "kind": "mutation", "transformation": "irrelevant", "base_case": "H11"}
+  ]
+}
