@@ -204,6 +204,10 @@ def create_app(mode=None, data_dir=None):
     app.mount('/figma', StaticFiles(directory=ROOT / 'public/figma'), name='figma')
     app.mount('/original-assets', StaticFiles(directory=ROOT / 'public/original-assets'), name='original-assets')
 
+    @app.api_route('/og.png', methods=['GET', 'HEAD'])
+    async def social_preview():
+        return FileResponse(ROOT / 'public/og.png', media_type='image/png')
+
     @app.get('/')
     @app.get('/original')
     async def original_review(request: Request):

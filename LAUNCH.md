@@ -21,6 +21,7 @@
 ## 수학적 조건
 
 - 등락률: `r = P / P_previous − 1`. 100에서 103이면 화면 `+3.00%`. 값이 없거나 분모가 0이면 `—`.
+- 관심 그룹: 선택한 그룹의 단순 평균 `r_group = Σr_i / n`. +3%, −1%이면 +1%. 하나라도 값이 없거나 빈 그룹이면 `—`, 두 값의 합이 0이면 `0.00%`.
 - 이동평균: 완료된 최근 종가 20개에 대해 `MA20 = ΣC / 20`. 19개면 자료 없음. 미완료 봉을 더해도 MA20이 바뀌지 않아야 한다.
 - 20거래일 수익률: `C_t / C_(t−20) − 1`. 종가 21개가 필요하다.
 - 구성: `Σw_known + w_missing = 1`. 반도체 ETF의 예시 비중은 확인 72.99%, 미확인 27.01%다. 히트맵 면적도 이를 따른다.
@@ -62,7 +63,15 @@ flowchart LR
 
 운영 웹은 FastAPI가 같은 출처에서 제공하므로 서버 모드만 바꾸면 된다. 기본 모바일 앱은 오프라인 번들이므로 `EDGE_API_ORIGIN=https://서버주소`로 다시 빌드한다. 키가 아닌 서버 주소만 포함한다. 모바일은 10초 간격 조회, 웹은 SSE로 시세를 받는다.
 
+Docker Compose 2.24 이상에서는 앱 폴더의 `.env`를 런타임에 읽는다. `.env.example`의 `EDGE_PUBLIC_ORIGIN`을 실제 서버 주소로 수정한다(로컬 Docker는 `http://127.0.0.1:8025`). 변경 후 `docker compose up -d --force-recreate`, 구성 점검은 `docker compose exec edge python -m server.preflight --require-live`다. 키 없이 실행할 때는 `.env`가 없어도 된다. [Compose 환경 파일 규칙](https://docs.docker.com/reference/compose-file/services/#env_file).
+
 Sites 공개 데모는 계속 예시 자료를 제공한다. 여기서 Python·stdio MCP가 실행되는 것으로 가정하면 안 된다. 금융 서버의 호스팅 계정, iOS 배포 서명·스토어 계정은 API 키와 별도 조건이다.
+
+## 모바일 파일 확인
+
+최종 파일은 [VERIFICATION.md](VERIFICATION.md)의 설치 파일 링크에서 연다. Android APK는 Android 기기로 옮겨 설치하거나 개발 환경에서 `adb install EDGE-demo-android.apk`로 설치한다. 개발 서명본이므로 스토어 출시본과 구분한다.
+
+macOS에서는 시뮬레이터 압축을 별도 폴더에 풀고 Simulator를 켠 뒤 `xcrun simctl install booted App.app`, `xcrun simctl launch booted com.marketbrew.edge`로 실행한다. iPhone용 unsigned 파일은 Apple 개발 서명·프로비저닝을 적용하기 전에는 휴대폰 설치 파일이 아니다.
 
 ## 사용자 검수와 이해도
 

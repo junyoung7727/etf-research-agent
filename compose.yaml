@@ -1,11 +1,17 @@
 services:
   edge:
     build: .
+    image: edge-etf:pre-key
     ports:
       - "127.0.0.1:8025:8018"
+    env_file:
+      - path: .env
+        required: false
     environment:
-      EDGE_MODE: demo
-      EDGE_PUBLIC_ORIGIN: http://127.0.0.1:8025
+      EDGE_MODE: ${EDGE_MODE:-demo}
+      EDGE_PUBLIC_ORIGIN: ${EDGE_PUBLIC_ORIGIN:-http://127.0.0.1:8025}
+      KIWOOM_MCP_COMMAND: ${KIWOOM_MCP_COMMAND:-kiwoom-exec-mcp}
+      KIWOOM_MCP_ARGS: ${KIWOOM_MCP_ARGS:-[]}
     volumes:
       - edge-data:/app/data
     restart: unless-stopped

@@ -2,7 +2,7 @@
 
 판정: **키 없는 공개 체험 앱·API 연결 코드·Android/iOS 빌드와 기동 완료. 실제 금융·LLM 인증과 스토어 출시는 미검증.** 원본 HTML·CSS·모션을 재사용했다. 로그인·알림은 제외하고 커뮤니티 목 자료·글·댓글·좋아요·의견 리포스트·투표·삭제·프로필 저장을 구현했다. 작성 내용은 기기별로 격리된다.
 
-공개 주소: [EDGE 국내 ETF 데모](https://edge-etf-demo.asm-alphaeveryday.chatgpt.site). Sites 공개 버전 2에서 HTTPS·CSP·기기 저장과 아래 동선을 확인했다. 금융 서버는 이 주소의 Worker와 별도로 실행한다. 코드·키 입력 순서·페이지 모델은 [LAUNCH.md](LAUNCH.md)를 따른다.
+공개 주소: [EDGE 국내 ETF 데모](https://edge-etf-demo.asm-alphaeveryday.chatgpt.site). Sites 공개 버전 2에서 HTTPS·CSP·기기 저장과 아래 동선을 확인했다. 버전 3은 홈 관심 그룹 등락률 연결을 보완했다. 금융 서버는 이 주소의 Worker와 별도로 실행한다. 코드·키 입력 순서·페이지 모델은 [LAUNCH.md](LAUNCH.md)를 따른다.
 
 ## 실제 실행 증거
 
@@ -11,22 +11,25 @@
 | `npm test` | 11/11 PASS, skipped 0 | 금융 결측·0값·종목 계약·완료 봉 MA·비중 보존·CSP nonce |
 | `npm run build` / `build:mobile` / `build:site` | PASS | TypeScript·프로덕션 번들. 500KB 청크 경고 있음 |
 | Python 계약·프로토콜 검사 | 18/18 PASS | Windows와 최종 Python 3.13 Docker에서 실행. 실제 MCP 세션 + 모의 도구/DeepSeek 응답, 비공개 대화·예산·출처·키 미입력 검사 |
-| 로컬 브라우저 검사 | 원본 6 + 커뮤니티 4 + 연결 4 PASS | 새 화면 14개 통과. 최초 전체 실행의 기존 UI 2개 실패는 `/legacy` 온보딩 조건 수정 후 기존 UI 5개 모두 재실행하여 PASS. 총 19개 범위, 단일 전체 재실행으로 보고하지 않음 |
+| 로컬 브라우저 검사 | 20/20 PASS, skipped 0 | 원본 6 + 커뮤니티 4 + 연결 5 + 기존 UI 5. 그룹 등락률 수정 후 전체 한 번 실행하여 1.2분에 통과. 평균·부분 결측·0·선택 그룹·빈 관심도 검사 |
 | 공개 Chromium / WebKit 동선 | 두 브라우저 PASS | 온보딩 모션→ETF 선택→검색·시세→분석·출처→예시 대화→투표·글쓰기·재접속 저장·다른 방문자 격리. JS 예외 0, 외부 출처 요청 0, 금융 API POST 0 |
 | 공개 HTTP | PASS | HTTPS 200, 명시적 DEMO 상태, 응답별 CSP nonce. 원본 비교 쿼리로 예시 표시 우회 불가 |
 | Android | PASS | Java 21·SDK 36, Debug APK 빌드. API 36 에뮬레이터 설치·프로세스·캡처 직접 확인 |
 | iOS | PASS | macOS·Xcode 26.6에서 시뮬레이터 앱 빌드·기동·캡처 확인. iPhone용 Release 앱도 서명 없이 컴파일 |
 | Docker | PASS | 이미지 빌드, 비root 사용자, 영구 볼륨, 상태 검사. 공식 Kiwoom MCP 초기화·도구 목록 조회 성공, 키·시장 호출 없음 |
 | 설정 점검 | PASS | 기본 `demoReady=true`, `liveConfigurationReady=false`. 누락된 변수 이름만 출력하고 외부 인증하지 않음 |
+| Compose 환경 파일 | PASS | `.env` 없는 실행과 별도 폴더의 모의 설정 전달 확인. 실제 자격증명 입력·외부 호출 없음 |
 | `npm audit` | 취약점 보고 0 | 최종 의존성 설치 기준. 전체 보안 평가라는 뜻은 아님 |
 
-네이티브 빌드: [GitHub Actions 35082890643](https://github.com/junyoung7727/etf-research-agent/actions/runs/35082890643), 소스 `e05099b2edd7d4378ce711525f871699ad7baa01`. 첫 iOS 실행 캡처가 빈 화면이어서 성공 판정을 철회하고, 대기·콘솔·실제 화면 렌더링 검사를 보강했다. 두 번째 실행에서 화면을 확인했다. 첫 빈 화면의 원인을 확정했다는 뜻은 아니다.
+최종 네이티브 빌드: [GitHub Actions 35085641926](https://github.com/junyoung7727/etf-research-agent/actions/runs/35085641926), 소스 `53fa5ddafb29fe815dfa8d8d8b5beb5821211955`. Android의 첫 실행은 앱 기동 후 UiAutomator가 빈 루트를 반환해 실패했다. 같은 코드의 Android 작업만 재실행한 attempt 2에서 통과했다. iOS는 이 소스의 첫 실행에서 빌드·렌더링·서명 전 iPhone 컴파일을 통과했다.
+
+그보다 앞선 iOS 캡처가 빈 화면이어서 성공 판정을 철회하고, 대기·콘솔·실제 화면 렌더링 검사를 보강했다. 이후 두 번의 빌드에서 실제 화면을 확인했다. 처음 빈 화면의 원인을 확정했다는 뜻은 아니다.
 
 설치·검수 파일:
 
-- [Android Debug APK](artifacts/releases/EDGE-demo-android.apk), 23,715,728 bytes. 개발 서명이며 Play Store 출시본이 아니다.
-- [iOS 시뮬레이터 앱](artifacts/releases/EDGE-demo-ios-simulator.app.tar.gz), 20,984,875 bytes. macOS Simulator에서 설치한다.
-- [iPhone용 서명 전 앱](artifacts/releases/EDGE-demo-ios-unsigned.app.tar.gz), 19,979,987 bytes. Apple 서명·프로비저닝 전에는 실제 iPhone에 배포할 수 없다.
+- [Android Debug APK](artifacts/releases/EDGE-demo-android.apk), 23,715,892 bytes. 개발 서명이며 Play Store 출시본이 아니다.
+- [iOS 시뮬레이터 앱](artifacts/releases/EDGE-demo-ios-simulator.app.tar.gz), 20,984,453 bytes. macOS Simulator에서 설치한다.
+- [iPhone용 서명 전 앱](artifacts/releases/EDGE-demo-ios-unsigned.app.tar.gz), 19,979,643 bytes. Apple 서명·프로비저닝 전에는 실제 iPhone에 배포할 수 없다.
 - [빌드·파일 해시](artifacts/releases/manifest.json), [공개 브라우저 결과](artifacts/public-demo/results.json). GitHub Actions 임시 산출물은 14일 보관이며 로컬 사본을 별도로 남겼다.
 
 ## 디자인·모션 판정
