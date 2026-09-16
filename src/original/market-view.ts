@@ -19,10 +19,11 @@ export function quoteView(q?:Quote) {
   return {price:money(q?.price),chg:percent(q?.changeRatio),chgC:n === null || n === 0 ? '#4E5968' : n>0 ? '#F04452' : '#3182F6',anim:''}
 }
 export function validateCatalog(value:Catalog):Catalog {
-  if (!value || !['DEMO','REAL'].includes(value.dataMode) || !Array.isArray(value.instruments) || value.instruments.length>200) throw new Error('시세 응답 형식이 올바르지 않아요.')
+  if (!value || !['DEMO','REAL'].includes(value.dataMode) || typeof value.asOf!=='string' || !Number.isFinite(Date.parse(value.asOf)) || typeof value.feedState!=='string' || typeof value.analysisEnabled!=='boolean' || !Array.isArray(value.instruments) || value.instruments.length>200) throw new Error('시세 응답 형식이 올바르지 않아요.')
   const seen=new Set()
   for(const i of value.instruments) {
     if (!i || !/^[0-9A-Z]{6}$/.test(i.id) || seen.has(i.id) || typeof i.name!=='string' || !i.quote || i.currency!=='KRW') throw new Error('국내 ETF 목록을 확인하지 못했어요.')
+    if(typeof i.quote.asOf!=='string' || !['READY','STALE','MISSING','ERROR','UNSUPPORTED'].includes(i.quote.status) || typeof i.quote.feedState!=='string') throw new Error('시세 상태와 기준일을 확인하지 못했어요.')
     for(const key of ['price','previousClose','changeRatio'] as const) if(i.quote[key] !== null && decimal(i.quote[key]) === null) throw new Error('시세 숫자를 확인하지 못했어요.')
     if (i.quote.price !== null && decimal(i.quote.price)! <= 0) throw new Error('유효하지 않은 가격이에요.')
     seen.add(i.id)
@@ -30,7 +31,7 @@ export function validateCatalog(value:Catalog):Catalog {
   return value
 }
 export function validateDetail(value:EtfDetail,symbol:string):EtfDetail {
-  validateCatalog({instruments:[value?.instrument],dataMode:value?.dataMode} as Catalog)
+  validateCatalog({instruments:[value?.instrument],dataMode:value?.dataMode,asOf:value?.instrument?.quote?.asOf,feedState:value?.instrument?.quote?.feedState,analysisEnabled:false} as Catalog)
   if(value.instrument.id!==symbol || !Array.isArray(value.candles) || value.candles.length>5000 || !Array.isArray(value.holdings) || !Array.isArray(value.analyses) || !Array.isArray(value.fundamentals)) throw new Error('요청한 ETF의 자료가 아니에요.')
   let previous=''
   for(const c of value.candles) {
@@ -39,7 +40,8 @@ export function validateDetail(value:EtfDetail,symbol:string):EtfDetail {
     previous=c.date
   }
   const total=value.holdings.reduce((sum,h)=>sum+h.weight,0)+value.residualWeight
-  if(value.holdings.some(h=>typeof h.name!=='string'||!Number.isFinite(h.weight)||h.weight<0||h.weight>1) || !Number.isFinite(value.residualWeight) || value.residualWeight<0 || Math.abs(total-1)>.000001) throw new Error('편입 비중의 합계를 확인하지 못했어요.')
+  if(value.holdings.some(h=>typeof h.name!=='string'||typeof h.theme!=='string'||!Number.isFinite(h.weight)||h.weight<0||h.weight>1||[h.dayReturn,h.return20].some(r=>r!==null&&!Number.isFinite(r))) || !Number.isFinite(value.residualWeight) || value.residualWeight<0 || Math.abs(total-1)>.000001) throw new Error('편입 비중의 합계를 확인하지 못했어요.')
+  if(value.fundamentals.some(f=>typeof f.label!=='string'||(f.value!==null&&typeof f.value!=='string')))throw new Error('기본 정보의 형식이 올바르지 않아요.')
   for(const report of value.analyses) {
     if(!report || report.dataMode!==value.dataMode || typeof report.headline!=='string' || typeof report.summary!=='string' || typeof report.asOf!=='string' || typeof report.modelId!=='string' || !Array.isArray(report.factors) || !Array.isArray(report.sources)) throw new Error('분석 응답 형식이 올바르지 않아요.')
     for(const f of report.factors) if(typeof f.label!=='string' || typeof f.explanation!=='string' || !Array.isArray(f.metrics) || f.metrics.some(m=>typeof m.label!=='string'||typeof m.unit!=='string'||(m.value!==null && decimal(m.value)===null))) throw new Error('분석 지표를 확인하지 못했어요.')
@@ -54,7 +56,8 @@ export function candleView(all:Candle[],count=25) {
   if(!rows.length) return empty
   const min=Math.min(...rows.map(c=>Number(c.low))),max=Math.max(...rows.map(c=>Number(c.high))),pad=Math.max((max-min)*.06,max*.001)
   const lo=min-pad,hi=max+pad
-  const x=(i:number)=>16.5+i*321/Math.max(1,rows.length-1)
+  // The source's price axis begins at x=296; candles stay to its left.
+  const x=(i:number)=>16.5+i*273/Math.max(1,rows.length-1)
   const y=(p:number)=>+(42+(hi-p)/(hi-lo)*208).toFixed(2)
   const start=all.length-rows.length
   const average=(n:number,index:number) => {
@@ -71,4 +74,28 @@ export function candleView(all:Candle[],count=25) {
     axis:[...new Set([0,Math.floor((rows.length-1)/2),rows.length-1])].map(i=>({pct:(x(i)/354*100).toFixed(1)+'%',l:rows[i].date.slice(5).replace('-','.')})),
     chartPoints:points.join(' '),areaPath:'M0,170 L'+points.join(' L')+' L362,170 Z',
   }
+}
+
+export function holdingsView(detail:EtfDetail|undefined,theme=false,change=false) {
+  const grouped=new Map<string,{name:string;weight:number;dayReturn:number|null}>()
+  for(const holding of detail?.holdings||[]) {
+    const name=theme?holding.theme:holding.name
+    const previous=grouped.get(name)
+    const weight=holding.weight+(previous?.weight||0)
+    const dayReturn=holding.dayReturn===null || previous?.dayReturn===null ? null : ((previous?.dayReturn||0)*(previous?.weight||0)+holding.dayReturn*holding.weight)/weight
+    grouped.set(name,{name,weight,dayReturn})
+  }
+  const items=[...grouped.values()].filter(h=>h.weight>0).sort((a,b)=>b.weight-a.weight)
+  const residual=detail?.residualWeight??1
+  if(residual>0)items.push({name:'미확인 구성',weight:residual,dayReturn:null})
+  const rows=[]
+  for(let i=0;i<items.length;i+=3) {
+    const group=items.slice(i,i+3)
+    rows.push({h:group.reduce((sum,h)=>sum+h.weight,0)*100+'%',cells:group.map(h=>({
+      name:h.name,flex:h.weight+' 1 0%',bg:change&&h.dayReturn!==null?(h.dayReturn>=0?'rgba(240,68,82,0.22)':'rgba(49,130,246,0.22)'):'#F2F4F6',
+      num:change?(h.dayReturn===null?'':(h.dayReturn*100).toFixed(2)):(h.weight*100).toFixed(2),showNum:change?h.dayReturn!==null:true,
+      numColor:'#191F28',showTag:false,tag:'',tagBg:'transparent',fs:'13px',fs2:'18px',pad:'8px',
+    }))})
+  }
+  return {rows,list:items.map(h=>({name:h.name,wL:(h.weight*100).toFixed(2)+'%',tag:h.name==='미확인 구성'?'자료 없음':'',d:detail?.holdingsAsOf?'기준일 '+detail.holdingsAsOf:'기준일 자료 없음',c:'#6B7684',bg:'#F2F4F6'}))}
 }

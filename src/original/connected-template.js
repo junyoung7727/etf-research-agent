@@ -1,5 +1,8 @@
+import { Capacitor } from '@capacitor/core'
+
 export function connectedTemplate(html) {
   html=html.replace('데모 · 예시 시세·분석·커뮤니티','{{ apiLabel }}')
+  if(Capacitor.isNativePlatform()) html=html.replace('width: 402px; height: 874px; border-radius: 44px;','width: 100vw; height: 100dvh; border-radius: 0;').replace('box-shadow: 0 24px 70px rgba(0,0,0,0.18);','box-shadow: none;')
   const content=`
 <sc-if value="{{ agentBubbleOn }}"><button data-api-agent aria-label="ETF AI에게 질문" onClick="{{ openAgent }}" style="position: absolute; right: 20px; bottom: {{ agentBottom }}; z-index: 29; width: 48px; height: 48px; border: none; border-radius: 50%; background: #3D34E0; color: #FFFFFF; font: 800 15px Pretendard; box-shadow: 0 4px 18px rgba(61,52,224,0.2); cursor: pointer;">AI</button></sc-if>
 <sc-if value="{{ agentOpen }}">
@@ -44,6 +47,6 @@ export function connectedTemplate(html) {
   html=html.replace(anchor,content+anchor)
   const brief='<sc-if value="{{ isStockBrief }}" hint-placeholder-val="{{ true }}">'
   if(!html.includes(brief))throw new Error('Original analysis entry missing')
-  html=html.replace(brief,brief+`<div style="margin: 12px 20px 0;"><dc-import name="LinkRow" hint-size="100%,48px" label="연결된 분석·출처" sub="{{ apiDetailNote }}" variant="accent" on-click="{{ apiOpenReport }}"></dc-import><sc-if value="{{ apiDetailFailed }}"><button onClick="{{ apiDetailRetry }}" style="padding: 10px; border: none; border-radius: 10px; color: #3D34E0; background: #F2F4F6; font: 700 13px Pretendard;">자료 다시 불러오기</button></sc-if></div>`)
+  html=html.replace(brief,brief+`<div style="margin: 12px 20px 0;"><dc-import name="LinkRow" hint-size="100%,48px" label="연결된 분석·출처" variant="accent" on-click="{{ apiOpenReport }}"></dc-import><p style="font-size: 12px; line-height: 1.5; color: #6B7684; margin-top: 8px;">{{ apiDetailNote }}</p><sc-if value="{{ apiDetailFailed }}"><button onClick="{{ apiDetailRetry }}" style="padding: 10px; border: none; border-radius: 10px; color: #3D34E0; background: #F2F4F6; font: 700 13px Pretendard;">자료 다시 불러오기</button></sc-if></div>`)
   return html
 }

@@ -50,3 +50,32 @@ test('글쓰기와 삭제가 기기에 저장되고 다른 방문자에게 전�
   expect(await otherPage.evaluate(()=>JSON.parse(localStorage.getItem('edge.original.preferences.v1')||'{}').commMine||{})).toEqual({})
   await other.close()
 })
+
+test('의견을 붙인 리포스트가 원글과 함께 보존된다',async({page})=>{
+  const actions=page.locator('[data-sc-name="PostActions"]').first()
+  await actions.locator('span').filter({has:page.locator('svg')}).nth(2).click()
+  await expect(page.getByText('의견 붙여서 리포스트',{exact:true})).toBeVisible()
+  await page.locator('textarea').fill('원글의 근거를 비교해 보는 예시 의견입니다.')
+  await page.getByText('게시',{exact:true}).click()
+  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('edge.original.preferences.v1')!))
+  const post=Object.values(saved.commMine).flat().find((p:any)=>p.body==='원글의 근거를 비교해 보는 예시 의견입니다.') as any
+  expect(post.quoteOf.id).toBeTruthy()
+  await page.reload()
+  await page.locator('[data-tab="community"]').click()
+  await expect(page.getByText(post.body,{exact:true})).toBeVisible()
+  expect(await page.evaluate(()=>Object.values(JSON.parse(localStorage.getItem('edge.original.preferences.v1')!).commMine).flat().some((p:any)=>!!p.quoteOf))).toBe(true)
+})
+
+test('커뮤니티 프로필 이름과 아이디가 저장된다',async({page})=>{
+  await page.locator('[data-sc-name="PageTitle"]').getByText('지',{exact:true}).click()
+  await expect(page.locator('[data-screen-label="커뮤니티 프로필"]')).toBeVisible()
+  await page.getByText('수정',{exact:true}).click()
+  await page.getByPlaceholder('닉네임').fill('ETF 공부중')
+  await page.getByPlaceholder('@아이디').fill('@study')
+  await page.getByText('저장',{exact:true}).click()
+  await page.reload()
+  await page.locator('[data-tab="community"]').click()
+  await page.locator('[data-sc-name="PageTitle"]').getByText('E',{exact:true}).click()
+  await expect(page.getByText('ETF 공부중',{exact:true})).toBeVisible()
+  await expect(page.getByText('@study',{exact:true})).toBeVisible()
+})

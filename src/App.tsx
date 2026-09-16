@@ -216,7 +216,7 @@ export default function App() {
           <span className="loading-dot" />
           ETF 정보를 불러오는 중
         </main>
-      ) : !prefs.onboarded && path === '/' ? (
+      ) : !prefs.onboarded && (path === '/' || path === '/legacy') ? (
         <Onboarding
           instruments={catalog.instruments}
           onFinish={(themes, items) => {

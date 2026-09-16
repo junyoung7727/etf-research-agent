@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import type { Candle, EtfDetail } from '../domain.ts'
-import { candleView, decimal, percent, quoteView, validateCatalog, validateDetail } from './market-view.ts'
+import { candleView, decimal, holdingsView, percent, quoteView, validateCatalog, validateDetail } from './market-view.ts'
 
 const fixtures=JSON.parse(readFileSync(new URL('../../public/demo-api.json',import.meta.url).pathname.replace(/^\/([A-Z]:)/,'$1'),'utf8'))
 const detail=():EtfDetail=>structuredClone(fixtures.details['396500'])
@@ -41,4 +41,14 @@ test('twenty completed closes form the MA; an intraday bar cannot change it',()=
   const v=candleView(rows.slice(0,1))
   assert.ok(Number.isFinite(v.candles[0].ry))
   assert.ok(!v.chartPoints.includes('NaN'))
+  assert.ok(candleView(rows).candles.every(c=>c.x<296))
+})
+test('heatmap area accounts for unknown holdings; missing returns are never colored as a market move',()=>{
+  const view=holdingsView(detail(),false,true)
+  const cells=view.rows.flatMap(r=>r.cells)
+  assert.ok(Math.abs(view.rows.reduce((sum,r)=>sum+parseFloat(r.h),0)-100)<.00001)
+  const residual=cells.find(c=>c.name==='미확인 구성')!
+  assert.equal(residual.showNum,false)
+  assert.equal(residual.bg,'#F2F4F6')
+  assert.equal(holdingsView(undefined).list[0].wL,'100.00%')
 })

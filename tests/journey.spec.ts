@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 test('온보딩 → 관심 설정 → 상세와 출처 → 새로고침 보존', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
-  await page.goto('/')
+  await page.goto('/legacy')
   await expect(
     page.getByText('체험용 예시 데이터 · 실시간 시세가 아닙니다'),
   ).toBeVisible()
@@ -47,7 +47,7 @@ test('온보딩 → 관심 설정 → 상세와 출처 → 새로고침 보존',
 })
 
 test('그룹 편집·되돌리기와 별도 방문자 격리', async ({ page, browser }) => {
-  await page.goto('/')
+  await page.goto('/legacy')
   await page.getByRole('button', { name: '건너뛰기' }).click()
   await page
     .getByRole('navigation')

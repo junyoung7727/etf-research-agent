@@ -1,5 +1,6 @@
 import * as api from './api-client'
-import { SYMBOLS, candleView, money, percent, quoteView } from './market-view'
+import { Capacitor } from '@capacitor/core'
+import { SYMBOLS, candleView, holdingsView, money, percent, quoteView } from './market-view'
 
 let currentCatalog=null
 const instrument=k=>currentCatalog?.instruments.find(i=>i.id===SYMBOLS[k])
@@ -46,6 +47,7 @@ export function connectedLogic(Original) {
     acceptCatalog(data) {
       if(!this._apiActive)return
       if(this._mode==='REAL' && data.dataMode!=='REAL') {this.setState({apiError:'실데이터 연결 상태가 바뀌었어요. 예시 가격으로 바꾸지 않았어요.'});return}
+      if(this._mode!==data.dataMode){this._details={};this._detailErrors={}}
       currentCatalog=data;this._mode=data.dataMode
       for(const [k,etf] of Object.entries(this.ETFS)) {
         const i=instrument(k)
@@ -136,14 +138,28 @@ export function connectedLogic(Original) {
         apiRunAnalysis:()=>this.runAnalysis(),apiAnalysisDisabled:!!s.apiAnalysisBusy||(real&&!currentCatalog?.analysisEnabled),
         apiAnalysisLabel:s.apiAnalysisBusy?'분석하고 있어요':real?'새 분석 요청':'예시 분석 다시 보기',apiAnalysisError:s.apiAnalysisError||'',
       }
+      if(SYMBOLS[k]) {
+        const stocks=holdingsView(detail,false,s.heatMode==='chg'),themes=holdingsView(detail,true,s.heatMode==='chg')
+        Object.assign(out,{
+          infoStats:(detail?.fundamentals||[]).map(f=>({k:f.label,v:f.value===null?'자료 없음':f.value})),
+          stHeatRows:stocks.rows,stThemeRows:themes.rows,stHeatLegend:[{c:'#B0B8C1',t:'확인되지 않은 등락·전망은 회색'}],stThemeLegend:[],
+          heatIsEnergy:false,heatIsChg:s.heatMode==='chg',
+          stHoldList:stocks.list,stThemeList:themes.list,stHoldToggleVisible:false,stThemeToggleVisible:false,
+          compositionSummary:detail?'확인된 비중 '+((1-detail.residualWeight)*100).toFixed(2)+'% · 미확인 '+(detail.residualWeight*100).toFixed(2)+'%':'편입 원자료를 확인하고 있어요.',
+          compositionInsight:detail?.holdings.length?'기준일의 편입 비중이에요. 없는 등락률과 전망은 추정하지 않아요.':'편입 원자료가 없어 구성과 투자 온도를 확인할 수 없어요.',compositionInsightColor:'#6B7684',
+        })
+      }
+      if(Capacitor.isNativePlatform())Object.assign(out,{deviceScale:1,shellH:'100dvh',shellBg:'#FAFAF8'})
       if(real) Object.assign(out,{
+        stSigLabel:'판단 보류',stSigMark:'—',stSigColor:'#8E8E93',stSigBg:'#F2F4F6',stSigTc:'#6B7684',
         sumVerdict:'판단 보류',daNowLabel:'판단 보류',daNowC:'#8E8E93',daChanged:false,daSynth:report?.summary||'아직 확인된 분석 자료가 없어요.',
+        daNowMark:'—',artStateBg:'#F2F4F6',artStateLine:'#E5E8EB',
+        daAxisChips:values.daAxisChips.map(f=>({...f,mark:'—',c:'#8E8E93',bg:'#F2F4F6'})),openAxisPage:out.apiOpenReport,
         daQuestion:report?.headline||'확인된 자료를 기다리고 있어요',artDateline:report?dateLabel(report.asOf):'분석 자료 없음',
         openDaSheet:out.apiOpenReport,openStoryFromStock:out.apiOpenReport,
+        moveCardLead:report?.headline||'움직임의 원인을 확인할 근거가 아직 없어요.',moveCardRest:report?.summary||'',moveFootLine:'시세 변화와 원인 설명은 별도로 확인해요.',moveAgo:report?dateLabel(report.asOf):'분석 자료 없음',openMove:out.apiOpenReport,
         stFee:detail?.fundamentals.find(f=>f.label==='총보수 (연)')?.value||'자료 없음',stDist:detail?.fundamentals.find(f=>f.label==='분배율 (연)')?.value||'자료 없음',stTe:'자료 없음',
         compositionInsight:detail?.holdings.length?'확인된 편입 비중과 기준일을 표시해요.':'편입 원자료가 없어 구성과 투자 온도를 표시하지 않아요.',compositionInsightColor:'#6B7684',
-        stHoldList:(detail?.holdings||[]).map(h=>({name:h.name,wL:(h.weight*100).toFixed(2)+'%',tag:'',c:'#6B7684',tc:'#6B7684',bg:'#F2F4F6'})),
-        stThemeList:[],stThemeRows:[],stHoldToggleVisible:false,stThemeToggleVisible:false,
       })
       return out
     }

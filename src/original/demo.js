@@ -21,6 +21,11 @@ function withoutBranches(html, names) {
 }
 
 export function demoTemplate(html) {
+  html=html.replaceAll('GPT Astra','DeepSeek')
+    .replace('최신 모델이 매일 새벽 읽어요','출처를 확인해 설명해요')
+    .replace('뉴스 3만 건을<br>대신 읽어드려요','흩어진 ETF 자료를<br>함께 읽어드려요')
+    .replace('언론사 70곳의 뉴스와 공시, 리포트를<br>매일 새벽에 모아요.','뉴스와 공시, 리포트에서<br>확인할 근거를 찾아요.')
+    .replace('최신 AI(DeepSeek)가<br>다섯 가지 기준으로 정리해요.','AI(DeepSeek)와 함께<br>다섯 가지 기준으로 살펴봐요.')
   html = withoutBranches(html, new Set([
     'isSignup','isNotis','isProfile','loggedIn','loggedOut',
   ]))
@@ -102,6 +107,7 @@ export function demoLogic(Original) {
       const vals = super.renderVals()
       return {
         ...vals,
+        obStats:vals.obStats?.map(stat=>({...stat,u:'화면 체험용 예시'})),
         localName:this.state.meNick || '',
         onLocalName:e => this.setState({meNick:e.target.value.slice(0,20)}),
         onMeNick:e => this.setState({meNick:e.target.value.slice(0,20)}),

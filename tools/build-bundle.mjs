@@ -1,4 +1,5 @@
 import { build } from 'vite'
+import react from '@vitejs/plugin-react'
 import { sites } from '@openai/sites-vite-plugin'
 import { mkdir, readFile, writeFile, rename } from 'node:fs/promises'
 import { execFileSync } from 'node:child_process'
@@ -14,9 +15,10 @@ if(origin && (!origin.startsWith('https://')||new URL(origin).origin!==origin))t
 if(target==='site' && origin)throw new Error('The public Site is a labelled, key-free demo. Deploy the full Docker server for live mode.')
 execFileSync(process.execPath,['tools/build-original.mjs'],{stdio:'inherit'})
 const outDir=target==='mobile'?'dist-mobile':'dist/client'
-await build({plugins:target==='site'?[sites()]:[],define:{
+await build({configFile:false,plugins:[react(),...(target==='site'?[sites()]:[])],define:{
   'import.meta.env.VITE_EDGE_BUNDLED_DEMO':JSON.stringify(origin?'0':'1'),
   'import.meta.env.VITE_EDGE_API_BASE':JSON.stringify(origin),
+  'import.meta.env.VITE_EDGE_ALLOW_SOURCE_FIXTURE':JSON.stringify('0'),
 },build:{outDir,reportCompressedSize:false,rolldownOptions:{input:{original:'original.html'}}}})
 await rename(path.join(outDir,'original.html'),path.join(outDir,'index.html'))
 if(target==='site') {

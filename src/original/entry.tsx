@@ -16,7 +16,7 @@ import './fonts.css'
 import './native'
 
 // Fixture mode is for comparing the packaged renderer against the untouched source.
-const fixture = new URLSearchParams(location.search).get('fixture') === 'original'
+const fixture = import.meta.env.VITE_EDGE_ALLOW_SOURCE_FIXTURE !== '0' && new URLSearchParams(location.search).get('fixture') === 'original'
 if (!fixture) {
   modules.App = {...modules.App,html:connectedTemplate(demoTemplate(modules.App.html)),Logic:connectedLogic(demoLogic(modules.App.Logic))}
   modules.LiveTicker = {...modules.LiveTicker,Logic:connectedTicker(modules.LiveTicker.Logic)}

@@ -13,7 +13,7 @@
     "build:mobile": "tsc --noEmit && node tools/build-bundle.mjs mobile",
     "build:site": "tsc --noEmit && node tools/build-bundle.mjs site",
     "mobile:sync": "npm run build:mobile && cap sync",
-    "test": "node --experimental-strip-types --test src/domain.test.ts src/original/market-view.test.ts",
+    "test": "node --experimental-strip-types --test src/domain.test.ts src/original/market-view.test.ts tests/hosting.test.mjs",
     "test:e2e": "playwright test"
   },
   "overrides": {

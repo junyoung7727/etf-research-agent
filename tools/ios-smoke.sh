@@ -8,7 +8,11 @@ edge_simulator=$(python3 -c 'import json; x=json.load(open("artifacts/ios-device
 xcrun simctl boot "$edge_simulator"
 xcrun simctl bootstatus "$edge_simulator" -b
 xcrun simctl install "$edge_simulator" ios-build/Build/Products/Debug-iphonesimulator/App.app
-xcrun simctl launch "$edge_simulator" com.marketbrew.edge > artifacts/ios-launch.txt
-sleep 8
+xcrun simctl launch --console "$edge_simulator" com.marketbrew.edge > artifacts/ios-console.log 2>&1 &
+edge_launch_pid=$!
+sleep 25
 xcrun simctl io "$edge_simulator" screenshot artifacts/ios-onboarding.png
+xcrun simctl spawn "$edge_simulator" log show --last 2m --style compact --predicate 'process == "App" OR process == "com.apple.WebKit.WebContent"' > artifacts/ios-runtime.log 2>&1
+kill "$edge_launch_pid" || true
+swift tools/verify-ios-render.swift artifacts/ios-onboarding.png
 tar -czf artifacts/edge-ios-simulator.app.tar.gz -C ios-build/Build/Products/Debug-iphonesimulator App.app

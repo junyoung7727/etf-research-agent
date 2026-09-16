@@ -15,7 +15,7 @@ export default {
       const html=(await response.text()).replace('<head>',`<head><meta name="style-nonce" content="${nonce}">`)
       headers.set('Content-Security-Policy',`default-src 'self'; script-src 'self'; style-src 'self' 'nonce-${nonce}'; style-src-attr 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'`)
       headers.set('Cache-Control','no-store')
-      headers.delete('Content-Length');headers.delete('ETag')
+      headers.delete('Content-Length');headers.delete('Content-Encoding');headers.delete('ETag')
       return new Response(html,{status:response.status,headers})
     }
     return new Response(response.body,{status:response.status,headers})

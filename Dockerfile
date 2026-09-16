@@ -1,4 +1,5 @@
 FROM node:22-bookworm-slim AS web
+ENV VITE_EDGE_ALLOW_SOURCE_FIXTURE=0
 WORKDIR /build
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
