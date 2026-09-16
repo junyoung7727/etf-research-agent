@@ -1,6 +1,6 @@
 import * as api from './api-client'
 import { Capacitor } from '@capacitor/core'
-import { SYMBOLS, candleView, holdingsView, money, percent, quoteView } from './market-view'
+import { SYMBOLS, candleView, decimal, holdingsView, money, percent, quoteView } from './market-view'
 
 let currentCatalog=null
 const instrument=k=>currentCatalog?.instruments.find(i=>i.id===SYMBOLS[k])
@@ -14,7 +14,8 @@ export function connectedTicker(Original) {
     componentDidMount() {}
     renderVals() {
       const values=super.renderVals()
-      if(values.isQuote||values.isRowQuote||values.isChgOnly) Object.assign(values,quoteView(instrument(this.props.seed)?.quote))
+      if(values.isQuote||values.isRowQuote) Object.assign(values,quoteView(instrument(this.props.seed)?.quote))
+      if(values.isChgOnly) Object.assign(values,{chg:this.props.change||'—',chgC:this.props.changeColor||'#4E5968'})
       if(values.isClock) values.clock=currentCatalog?.asOf?.slice(11,19)||'—'
       if(values.isIndex && currentCatalog?.dataMode==='REAL') Object.assign(values,{idxVal:'—',idxChg:'자료 없음',idxC:'#6B7684'})
       return values
@@ -120,8 +121,11 @@ export function connectedLogic(Original) {
       const values=super.renderVals(),s=this.state,k=s.stockEtf,detail=this._details?.[k]
       const reports=detail?.analyses||[],report=reports[s.apiReportIndex||0]||reports[0]
       const real=this._mode==='REAL',q=instrument(k)?.quote
+      const returns=this.watchKeys(s).map(etf=>decimal(instrument(etf)?.quote?.changeRatio))
+      const group=quoteView({changeRatio:returns.length && returns.every(r=>r!==null)?String(returns.reduce((sum,r)=>sum+r,0)/returns.length):null})
       const label=real?'실시세 연결 · 전망·뉴스·커뮤니티는 예시':this._mode==='DEMO'?'데모 · 예시 시세·분석·커뮤니티':'데이터 연결 확인 중'
       const out={...values,apiLabel:label,apiError:s.apiError||'',apiHasError:!!s.apiError,
+        apiGroupChg:group.chg,apiGroupChgC:group.chgC,
         apiRetry:()=>{this.refreshCatalog();this.ensureDetail(k,true)},
         apiDetailNote:this._detailErrors[k]||(detail?(q?.status==='STALE'?'지연된 시세 · ':'')+dateLabel(q?.asOf)+' 기준':SYMBOLS[k]?'자료를 불러오고 있어요.':'이 종목은 화면 체험용 예시입니다.'),
         apiDetailFailed:!!this._detailErrors[k],apiDetailRetry:()=>this.ensureDetail(k,true),

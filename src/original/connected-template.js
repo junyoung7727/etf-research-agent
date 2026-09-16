@@ -2,6 +2,7 @@ import { Capacitor } from '@capacitor/core'
 
 export function connectedTemplate(html) {
   html=html.replace('데모 · 예시 시세·분석·커뮤니티','{{ apiLabel }}')
+  html=html.replace('seed="edge{{ edgeBand }}"','seed="edge{{ edgeBand }}" change="{{ apiGroupChg }}" change-color="{{ apiGroupChgC }}"')
   if(Capacitor.isNativePlatform()) html=html.replace('width: 402px; height: 874px; border-radius: 44px;','width: 100vw; height: 100dvh; border-radius: 0;').replace('box-shadow: 0 24px 70px rgba(0,0,0,0.18);','box-shadow: none;')
   const content=`
 <sc-if value="{{ agentBubbleOn }}"><button data-api-agent aria-label="ETF AI에게 질문" onClick="{{ openAgent }}" style="position: absolute; right: 20px; bottom: {{ agentBottom }}; z-index: 29; width: 48px; height: 48px; border: none; border-radius: 50%; background: #3D34E0; color: #FFFFFF; font: 800 15px Pretendard; box-shadow: 0 4px 18px rgba(61,52,224,0.2); cursor: pointer;">AI</button></sc-if>

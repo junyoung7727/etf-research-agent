@@ -20,7 +20,8 @@ await build({configFile:false,plugins:[react(),...(target==='site'?[sites()]:[])
   'import.meta.env.VITE_EDGE_API_BASE':JSON.stringify(origin),
   'import.meta.env.VITE_EDGE_ALLOW_SOURCE_FIXTURE':JSON.stringify('0'),
 },build:{outDir,reportCompressedSize:false,rolldownOptions:{input:{original:'original.html'}}}})
-await rename(path.join(outDir,'original.html'),path.join(outDir,'index.html'))
+// A public index.html would bypass the Worker on Sites' asset-first routing.
+await rename(path.join(outDir,'original.html'),path.join(outDir,target==='site'?'edge-shell.txt':'index.html'))
 if(target==='site') {
   await mkdir('dist/server',{recursive:true})
   await writeFile('dist/server/index.js',await readFile('hosting/worker.js','utf8'))

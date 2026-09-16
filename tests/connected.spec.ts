@@ -16,6 +16,27 @@ async function openEtf(page:any) {
   await page.getByText('TIGER 반도체TOP10',{exact:true}).click()
 }
 
+test('group return averages selected quotes and preserves missing values and zero',async({page})=>{
+  const catalog=structuredClone(fixtures.catalog)
+  catalog.instruments.find((i:any)=>i.id==='396500').quote.changeRatio='0.03'
+  catalog.instruments.find((i:any)=>i.id==='449450').quote.changeRatio='-0.01'
+  await page.route('**/api/catalog',route=>route.fulfill({json:catalog}))
+  await page.goto('/original')
+  await page.evaluate(()=>{(window as any).__app.setState({watch:['AXAI','DEFN']})})
+  const group=page.locator('[data-sc-name="LiveTicker"]').first()
+  await expect(group).toHaveText('+1.00%')
+  catalog.instruments.find((i:any)=>i.id==='449450').quote.changeRatio=null
+  await page.evaluate(c=>(window as any).__app.acceptCatalog(c),catalog)
+  await expect(group).toHaveText('—')
+  catalog.instruments.find((i:any)=>i.id==='449450').quote.changeRatio='-0.03'
+  await page.evaluate(c=>(window as any).__app.acceptCatalog(c),catalog)
+  await expect(group).toHaveText('0.00%')
+  await page.evaluate(()=>(window as any).__app.setState({wGroupList:[{id:'only-defense',name:'방산만',keys:['DEFN']}],watchGroup:'only-defense'}))
+  await expect(group).toHaveText('-3.00%')
+  await page.evaluate(()=>(window as any).__app.setState({watch:[]}))
+  await expect(group).toHaveText('—')
+})
+
 test('API price and completed-bar chart replace the original synthetic ticking values',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
   await openEtf(page)

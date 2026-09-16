@@ -1,6 +1,6 @@
 # 현재 구현을 검수하는 방법
 
-2026-09-16 기준. 이 문서는 `/`의 기존 API 연결 화면과 서버를 설명한다. 새 `/original` 화면은 원본 HTML을 재현한 예시 데이터 앱으로, 아래 API와 아직 매핑하지 않았다. 새 화면의 모델·보안·검증은 [원본 재현 기록](ORIGINAL_REPRODUCTION.md)에 있다. `private/demo-spec/DESIGN.md`의 전체 제품 모델은 목표 설계이며, 아직 모든 필드·수집기·화면 상태가 구현된 것은 아니다. 실제 실행 증거는 [검증 기록](VERIFICATION.md)에 있다.
+2026-09-16 기준. `/`와 `/original`은 원본 화면에 아래 API를 연결한 앱이며 이전 화면은 `/legacy`에 보존한다. 원본 편집 뉴스·전망·스토리는 예시로 표시한다. 페이지별 모델과 키 입력 순서는 [LAUNCH.md](LAUNCH.md), 플랫폼별 실행 증거는 [검증 기록](VERIFICATION.md)에 있다. 초기 목표 설계의 모든 수집기와 분석 정책이 구현된 것은 아니다.
 
 ## 실행 위치와 데이터 흐름
 
@@ -34,7 +34,7 @@ DeepSeek는 호출할 도구를 제안한다. 실제 실행은 서버가 결정�
 | ETF AI 분석 | `Analysis[]`, `Factor[]`, `Source[]` | DEMO는 고정 예시. REAL은 SQLite에 성공한 분석만 저장. 모델·분석 시각과 시세 시각을 구분 |
 | ETF 종목정보 | `Holding[]`, 잔여 비중, 기준일, 기본 정보 | 실제 운용사 수집기는 미구현. REAL은 빈 구성과 자료 없음 |
 | 탐색·테마 | 종목 목록 + 테마 분류 | 현재 분류는 편집한 메타데이터. 실제 편입 비중·예측 순위라는 뜻이 아님 |
-| 이슈 | 선택 ETF의 최근 분석·출처 | 독립 뉴스 수집기·뉴스 DB는 미구현. DEMO는 예시, REAL은 성공한 분석이 없으면 빈 상태 |
+| 이슈·스토리 | 원본 편집 자료, 연결된 분석은 별도 시트 | 원본 뉴스·전망은 예시. 독립 뉴스 수집기는 없으며 REAL 분석 시트는 성공한 분석이 없으면 빈 상태 |
 
 금액·OHLC·등락 비율은 API에서 decimal 문자열이다. 거래량은 정수, 구성 비중은 현재 데모에서 숫자다. `dataMode`는 묶음/분석의 `DEMO` 또는 `REAL`, 자료 상태는 `READY / STALE / MISSING / ERROR / UNSUPPORTED`로 표현한다. 최초 설계의 모든 자료에 공통 `Observation`을 적용하는 작업은 아직 하지 않았다.
 
@@ -55,7 +55,8 @@ DeepSeek는 호출할 도구를 제안한다. 실제 실행은 서버가 결정�
 | `GET /api/etfs/{symbol}` | ETF 상세·일봉·구성·저장된 분석 |
 | `GET /api/quotes/stream` | 공유 시세를 SSE로 전달 |
 | `POST /api/analysis-jobs` | `{ "instrumentId": "396500" }`만 받아 분석 요청 |
-| `GET /api/analysis-jobs/{id}` | 작업 상태·실패 코드 조회 |
+| `GET /api/analysis-jobs/{id}` | 작업 상태·실패 코드 조회. 대화 결과는 요청 세션만 조회 |
+| `POST /api/chat-jobs` | ETF 코드·질문·최근 대화 4개. 결과는 세션별 저장 |
 
 그룹·검색·테마별로 별도 API를 늘리지 않고 카탈로그와 브라우저 상태에서 계산한다. 현재 작업 상태는 `RUNNING → SUCCEEDED 또는 FAILED`다. 시간 초과는 `FAILED`와 `failureCode=TIMED_OUT`으로 기록한다. 대기열은 없으며 동시 2개를 넘는 새 작업을 거절한다. 동일 종목·한국 시간 달력 날짜·정책의 실행 중/성공 작업은 재사용한다.
 
