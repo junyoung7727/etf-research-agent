@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: edge-etf-api
+    runtime: docker
+    plan: starter
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    numInstances: 1
+    disk:
+      name: edge-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - key: EDGE_MODE
+        value: demo
+      - key: EDGE_SYMBOLS
+        value: 396500,449450,487230,439870,364970,377990
+      - key: EDGE_DAILY_TOKEN_BUDGET
+        value: "0"
+      - key: EDGE_MARKET_DATA_PUBLIC_USE_CONFIRMED
+        value: "0"

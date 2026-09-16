@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<span style="width: {{ px }}; height: {{ px }}; border-radius: 999px; background: {{ bgC }}; color: #FFFFFF; font-size: {{ fs }}; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: Pretendard, -apple-system, sans-serif; line-height: 1;">{{ ch }}</span>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 60, &quot;height&quot;: 60}, &quot;label&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;지&quot;, &quot;tsType&quot;: &quot;string&quot;}, &quot;bg&quot;: {&quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#3D34E0&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;options&quot;: [&quot;#3D34E0&quot;, &quot;#F04452&quot;, &quot;#3182F6&quot;, &quot;#8E8E93&quot;]}, &quot;size&quot;: {&quot;editor&quot;: &quot;int&quot;, &quot;default&quot;: 40, &quot;tsType&quot;: &quot;number&quot;, &quot;min&quot;: 16, &quot;max&quot;: 96}}">
+class Component extends DCLogic {
+  renderVals() {
+    const size = Number(this.props.size ?? 40);
+    return { px: size + 'px', fs: Math.round(size * 0.38) + 'px', bgC: this.props.bg ?? '#3D34E0', ch: String(this.props.label ?? '지').slice(0, 1) };
+  }
+}
+</script>
+</body>
+</html>

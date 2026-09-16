@@ -1,0 +1,110 @@
+{
+  "source": "MarketBrew-clean",
+  "files": [
+    {
+      "file": "Avatar.dc.html",
+      "sha256": "702a5ea258ebed2a319a2550ba84b7833752512c3e02bba1d47f5a775a29361a"
+    },
+    {
+      "file": "AxisTag.dc.html",
+      "sha256": "5b36b89be5d32b4f34367edfa5ee8b7e291d5fbbe09523f9a03a4c057df7ab29"
+    },
+    {
+      "file": "Canvas.dc.html",
+      "sha256": "d3a65cc8ce0e759849eaa1ca985d0fbc49bafb3212f9029731ca08d1bda42293"
+    },
+    {
+      "file": "Chevron.dc.html",
+      "sha256": "b3b109833c3d1dcc7b19b603a7f7811c4f9fb9b05e8d0a668a07faefd86a9745"
+    },
+    {
+      "file": "Chip.dc.html",
+      "sha256": "7c406e21463f859ff7526248dbbeecb7bbeed8ca252e1517326082e14da43c38"
+    },
+    {
+      "file": "CtaButton.dc.html",
+      "sha256": "7091f2ef7cc0c0432ca7899c585397d6409c55409064dd0e966539599e472eb5"
+    },
+    {
+      "file": "EtfRow.dc.html",
+      "sha256": "d8ae62a55eae263fac6d100ad5abd8fc4541e4fcd290c0f6ae9cb45380d116a0"
+    },
+    {
+      "file": "FactorRow.dc.html",
+      "sha256": "926e7c2899ab710242ef584806e03b09de3c6d83c20d77eb4d1d29fe02be3721"
+    },
+    {
+      "file": "IconButton.dc.html",
+      "sha256": "ed7a9781b14e30c3be1c404aa4dd70eed9cd3fe399892c5bbf52d0ec75b8eb93"
+    },
+    {
+      "file": "LinkRow.dc.html",
+      "sha256": "f8154b908ea5b810422e1a34bf9199ea87f96619c221ff7e702a01ea1a070564"
+    },
+    {
+      "file": "ListRow.dc.html",
+      "sha256": "863e040d82f12ea2dfc18ba6ce133553601dbea75654bc616f3a316ba5c89c7a"
+    },
+    {
+      "file": "LiveTicker.dc.html",
+      "sha256": "99505b73a5ea45c6b61feec1e67d814ff8a40a048932eb2d27d8b3df8a28958f"
+    },
+    {
+      "file": "MarketBrew App v188 copy 2.dc.html",
+      "sha256": "b7bc20f2e13cb5862facbeb780fe4b59a21462f081870859aecf6a2f80a34005"
+    },
+    {
+      "file": "NavBar.dc.html",
+      "sha256": "9212835abb2f10ac74285663f8d971c9b95e7a975a634e9fee7e29a31b24defd"
+    },
+    {
+      "file": "PageTitle.dc.html",
+      "sha256": "b25753677b8a5126d2510b2338921afe33bd55985fe09b999c3b35a9827a5bfc"
+    },
+    {
+      "file": "PollCard.dc.html",
+      "sha256": "f63a04109074cfdf545a0c1f3c5a3766fcc5bf9e304ae5641aa9ad7b85b4b7f0"
+    },
+    {
+      "file": "PostActions.dc.html",
+      "sha256": "ba0043019eb1bcddab9667ab671b9f72cfff3b79b6a13efde266f2623df8cfb6"
+    },
+    {
+      "file": "SearchField.dc.html",
+      "sha256": "2bca0102a57db32e03890e5c355e9782083b851bce8c23d6c0e1696660ecfd6e"
+    },
+    {
+      "file": "SectionHead.dc.html",
+      "sha256": "1a9cc313f5d81623a0f645adff5f05b69e9ede1454e8bd0ab494359b22b504ec"
+    },
+    {
+      "file": "SectorIcon.dc.html",
+      "sha256": "4d932c5ce722b23135379dd4b46743c9134a56729cd206aa6f43dc50dc50d310"
+    },
+    {
+      "file": "SheetHead.dc.html",
+      "sha256": "41a8fdcd5ea3f1c6e30e63400e29277d1890b8333ca04847b5cd104eef9be5cc"
+    },
+    {
+      "file": "Sticker.dc.html",
+      "sha256": "fed640dc4f9f8ee8177f78c5ea72a140268f0bd29e61afd978f19ee77e2bc178"
+    },
+    {
+      "file": "StoryRing.dc.html",
+      "sha256": "377ea94b7336e5d680fe8e7a2edc3f70155b61f93187aadf2b603b1b18079b0e"
+    },
+    {
+      "file": "TabItem.dc.html",
+      "sha256": "91f6d5a0dd1520413d901f3aecd61012f7d379d491ce1f23716a714332ff2f9f"
+    },
+    {
+      "file": "Toast.dc.html",
+      "sha256": "ec4cd58cd9a54443c0fe7609c8f610a914d76fa5aa51ddc75d0ed01d891457fd"
+    },
+    {
+      "file": "ToggleRow.dc.html",
+      "sha256": "2b875981ec5c8f8f92e463e3a67ed834fc3b6e0bd63b52bf975c89b19dd38a13"
+    }
+  ],
+  "runtimeSha256": "8fe7df74405f3c55f49b7249c74ea1397e65d07dea2b1bd3b4a489bec2e28cbe"
+}

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">EDGE</string>
+    <string name="title_activity_main">EDGE</string>
+    <string name="package_name">com.marketbrew.edge</string>
+    <string name="custom_url_scheme">com.marketbrew.edge</string>
+</resources>

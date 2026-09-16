@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="display: flex; align-items: center; gap: 14px; font-family: Pretendard, -apple-system, sans-serif;">
+  <span onClick="{{ onLike }}" style="display: flex; align-items: center; gap: 5px; min-height: 28px; font-size: {{ fs }}; font-weight: 600; line-height: 20px; color: {{ likeC }}; cursor: pointer;" style-active="opacity: 0.6;">
+    <svg width="{{ ic }}" height="{{ ic }}" viewBox="0 0 24 24"><path d="M12 21s-7-4.6-9.3-9.3C.9 8 3 4.5 6.5 4.5c2 0 3.5 1 4.5 2.6 1-1.6 2.5-2.6 4.5-2.6 3.5 0 5.6 3.5 3.8 7.2C19 16.4 12 21 12 21z" style="fill: {{ likeFill }}; stroke: {{ likeC }}; stroke-width: 1.8; stroke-linejoin: round;"></path></svg>{{ like }}
+  </span>
+  <span onClick="{{ onReply }}" style="display: flex; align-items: center; gap: 5px; min-height: 28px; font-size: {{ fs }}; font-weight: 600; line-height: 20px; color: #6B7684; cursor: pointer;" style-active="opacity: 0.6;">
+    <svg width="{{ ic }}" height="{{ ic }}" viewBox="0 0 24 24"><path d="M4 5.5h16v10H9l-5 4v-4H4z" style="fill: none; stroke: #6B7684; stroke-width: 1.8; stroke-linejoin: round;"></path></svg>{{ reply }}
+  </span>
+  <sc-if value="{{ hasRepost }}" hint-placeholder-val="{{ true }}">
+    <span onClick="{{ onRepost }}" style="display: flex; align-items: center; gap: 5px; min-height: 28px; font-size: {{ fs }}; font-weight: 600; line-height: 20px; color: {{ rpC }}; cursor: pointer;" style-active="opacity: 0.6;">
+      <svg width="{{ ic }}" height="{{ ic }}" viewBox="0 0 24 24"><path d="M7 7h9a3 3 0 0 1 3 3v2M17 17H8a3 3 0 0 1-3-3v-2M14 4l3 3-3 3M10 20l-3-3 3-3" style="fill: none; stroke: {{ rpC }}; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;"></path></svg>{{ repost }}
+    </span>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 300, &quot;height&quot;: 40}, &quot;like&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;48&quot;, &quot;tsType&quot;: &quot;string&quot;}, &quot;reply&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;12&quot;, &quot;tsType&quot;: &quot;string&quot;}, &quot;repost&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;3&quot;, &quot;tsType&quot;: &quot;string&quot;}, &quot;liked&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;}, &quot;reposted&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;}, &quot;size&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;md&quot;, &quot;options&quot;: [&quot;md&quot;, &quot;lg&quot;], &quot;tsType&quot;: &quot;string&quot;}, &quot;onLike&quot;: {&quot;editor&quot;: null, &quot;default&quot;: null, &quot;tsType&quot;: &quot;(e) =&gt; void&quot;}, &quot;onReply&quot;: {&quot;editor&quot;: null, &quot;default&quot;: null, &quot;tsType&quot;: &quot;(e) =&gt; void&quot;}, &quot;onRepost&quot;: {&quot;editor&quot;: null, &quot;default&quot;: null, &quot;tsType&quot;: &quot;(e) =&gt; void&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, liked = !!p.liked, lg = p.size === 'lg';
+    return { like: p.like || '0', reply: p.reply || '0', repost: p.repost || '0', hasRepost: p.onRepost !== undefined || p.repost !== undefined,
+      likeC: liked ? '#F04452' : '#6B7684', likeFill: liked ? '#F04452' : 'none', rpC: p.reposted ? '#3D34E0' : '#6B7684',
+      fs: lg ? '15px' : '14px', ic: lg ? 20 : 18,
+      onLike: p.onLike || (() => {}), onReply: p.onReply || (() => {}), onRepost: p.onRepost || (() => {}) };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div onClick="{{ onClick }}" style="position: relative; width: {{ px }}; height: {{ px }}; border-radius: 999px; border: {{ border }}; background: {{ bg }}; box-shadow: {{ shadow }}; backdrop-filter: {{ blur }}; -webkit-backdrop-filter: {{ blur }}; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-sizing: border-box;">
+  <sc-if value="{{ isBack }}"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M12.5 4.5L6 10l6.5 5.5" style="stroke: {{ c }}; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round;"></path></svg></sc-if>
+  <sc-if value="{{ isClose }}"><svg width="18" height="18" viewBox="0 0 18 18"><path d="M4 4l10 10M14 4L4 14" style="stroke: {{ c }}; stroke-width: 2; stroke-linecap: round;"></path></svg></sc-if>
+  <sc-if value="{{ isSearch }}"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="9" cy="9" r="6" style="stroke: {{ c }}; stroke-width: 1.9; fill: none;"></circle><path d="M13.5 13.5l4 4" style="stroke: {{ c }}; stroke-width: 1.9; stroke-linecap: round;"></path></svg></sc-if>
+  <sc-if value="{{ isBell }}"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 3a4.5 4.5 0 00-4.5 4.5v2.7L4 13h12l-1.5-2.8V7.5A4.5 4.5 0 0010 3z" style="stroke: {{ c }}; stroke-width: 1.8; fill: none; stroke-linejoin: round;"></path><path d="M8.2 15.5a1.9 1.9 0 003.6 0" style="stroke: {{ c }}; stroke-width: 1.8; fill: none; stroke-linecap: round;"></path></svg></sc-if>
+  <sc-if value="{{ isMenu }}"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M3.5 6h13M3.5 10h13M3.5 14h13" style="stroke: {{ c }}; stroke-width: 1.9; stroke-linecap: round;"></path></svg></sc-if>
+  <sc-if value="{{ isGear }}"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="2.4" style="stroke: {{ c }}; stroke-width: 1.7; fill: none;"></circle><path d="M10 2.8l1.2 1.9 2.2-.5.6 2.2 2.1.9-.8 2.1.8 2.1-2.1.9-.6 2.2-2.2-.5L10 17.2l-1.2-1.9-2.2.5-.6-2.2-2.1-.9.8-2.1-.8-2.1 2.1-.9.6-2.2 2.2.5z" style="stroke: {{ c }}; stroke-width: 1.6; fill: none; stroke-linejoin: round;"></path></svg></sc-if>
+  <sc-if value="{{ isPlus }}"><svg width="{{ plusSz }}" height="{{ plusSz }}" viewBox="0 0 18 18"><path d="M9 3v12M3 9h12" style="stroke: {{ c }}; stroke-width: 2; stroke-linecap: round;"></path></svg></sc-if>
+  <sc-if value="{{ isShare }}"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 12V3M6.5 6L10 2.5 13.5 6M4.5 10v7h11v-7" style="stroke: {{ c }}; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round;"></path></svg></sc-if>
+  <sc-if value="{{ isPrev }}"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M8.5 2.5L4 7l4.5 4.5" style="stroke: {{ c }}; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round;"></path></svg></sc-if>
+  <sc-if value="{{ isNext }}"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M5.5 2.5L10 7l-4.5 4.5" style="stroke: {{ c }}; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round;"></path></svg></sc-if>
+  <sc-if value="{{ hasBadge }}"><span style="position: absolute; top: -2px; right: -2px; min-width: 17px; height: 17px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; background: #F04452; color: #FFFFFF; font-size: 10.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 2px solid #FFFFFF;">{{ badge }}</span></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:120,&quot;height&quot;:80},&quot;icon&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;back&quot;,&quot;options&quot;:[&quot;back&quot;,&quot;close&quot;,&quot;search&quot;,&quot;bell&quot;,&quot;menu&quot;,&quot;gear&quot;,&quot;plus&quot;,&quot;share&quot;,&quot;prev&quot;,&quot;next&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;size&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:38,&quot;tsType&quot;:&quot;number&quot;},&quot;circled&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;floating&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;color&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#191F28&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;badge&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onClick&quot;:{&quot;editor&quot;:null,&quot;default&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;fab&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;soft&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, icon = p.icon || 'back', size = Number(p.size || 38);
+    const circled = !!p.circled, floating = !!p.floating, fab = !!p.fab, soft = !!p.soft;
+    return {
+      px: size + 'px',
+      c: fab ? '#FFFFFF' : (p.color || '#191F28'),
+      border: circled ? '1px solid #E5E8EB' : 'none',
+      bg: fab ? '#191F28' : (floating ? 'rgba(242,244,246,0.94)' : (soft ? '#F2F4F6' : (circled ? '#FFFFFF' : 'transparent'))),
+      shadow: fab ? '0 8px 22px rgba(25,31,40,0.32)' : (floating ? '0 2px 8px rgba(28,28,30,0.08)' : 'none'),
+      blur: floating ? 'blur(8px)' : 'none',
+      isBack: icon === 'back', isClose: icon === 'close', isSearch: icon === 'search', isBell: icon === 'bell',
+      plusSz: fab ? 24 : 18,
+      isMenu: icon === 'menu', isGear: icon === 'gear', isPlus: icon === 'plus', isShare: icon === 'share',
+      isPrev: icon === 'prev', isNext: icon === 'next',
+      hasBadge: !!p.badge, badge: p.badge || '',
+      onClick: p.onClick || (() => {})
+    };
+  }
+}
+</script>
+</body>
+</html>

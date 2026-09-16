@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<sc-if value="{{ isClock }}">
+  <span style="display: flex; align-items: center; gap: 5px; background: rgba(240,68,82,0.10); border-radius: 999px; padding: 4px 9px; flex-shrink: 0;">
+    <span style="width: 6px; height: 6px; border-radius: 999px; background: #F04452; animation: livePulse 1.6s ease-in-out infinite;"></span>
+    <span style="font-family: 'JetBrains Mono', Pretendard, monospace; font-size: 11.5px; font-weight: 700; color: #D22F3D;">{{ clock }}</span>
+  </span>
+</sc-if>
+<sc-if value="{{ isQuote }}">
+  <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0;">
+    <span style="font-family: 'JetBrains Mono', Pretendard, monospace; font-size: 13px; font-weight: 700; color: #191F28; letter-spacing: -0.02em;">{{ price }}</span>
+    <span style="font-family: 'JetBrains Mono', Pretendard, monospace; font-size: 12.5px; font-weight: 800; color: {{ chgC }};">{{ chg }}</span>
+  </span>
+</sc-if>
+<sc-if value="{{ isRowQuote }}">
+  <span style="display: flex; align-items: baseline; gap: 6px; flex-shrink: 0;">
+    <span style="font-family: 'JetBrains Mono', Pretendard, monospace; font-size: 12.5px; font-weight: 700; color: #4E5968; letter-spacing: -0.02em;">{{ price }}</span>
+    <span style="font-family: 'JetBrains Mono', Pretendard, monospace; font-size: 12.5px; font-weight: 800; color: {{ chgC }};">{{ chg }}</span>
+  </span>
+</sc-if>
+<sc-if value="{{ isChgOnly }}">
+  <span style="font-family: 'JetBrains Mono', Pretendard, monospace; font-size: {{ chgSize }}; font-weight: 800; color: {{ chgC }}; letter-spacing: -0.02em; flex-shrink: 0;">{{ chg }}</span>
+</sc-if>
+<sc-if value="{{ isIndex }}">
+  <span style="display: flex; align-items: center; gap: 8px; cursor: pointer;" onClick="{{ next }}">
+    <span style="font-size: 15px; font-weight: 700; color: #4E5968; letter-spacing: -0.02em; white-space: nowrap;">{{ idxName }}</span>
+    <span style="font-family: 'JetBrains Mono', Pretendard, monospace; font-size: 15px; font-weight: 800; color: {{ idxC }}; letter-spacing: -0.02em;">{{ idxVal }}</span>
+    <span style="font-family: 'JetBrains Mono', Pretendard, monospace; font-size: 15px; font-weight: 800; color: {{ idxC }};">{{ idxChg }}</span>
+  </span>
+</sc-if>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 200, &quot;height&quot;: 60}, &quot;mode&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;clock&quot;, &quot;quote&quot;, &quot;index&quot;], &quot;default&quot;: &quot;quote&quot;, &quot;tsType&quot;: &quot;string&quot;}, &quot;base&quot;: {&quot;editor&quot;: &quot;float&quot;, &quot;default&quot;: 0.8, &quot;tsType&quot;: &quot;number&quot;}, &quot;price&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;₩12,845&quot;, &quot;tsType&quot;: &quot;string&quot;}, &quot;seed&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;AXAI&quot;, &quot;tsType&quot;: &quot;string&quot;}, &quot;items&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;코스피,3412,+0.8%;코스닥,1042,+1.4%&quot;, &quot;tsType&quot;: &quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { t: 0 };
+
+  componentDidMount() {
+    const every = this.props.mode === 'clock' ? 1000 : (this.props.mode === 'index' ? 3200 : 3000);
+    this._t = setInterval(() => this.setState(p => ({ t: (p.t || 0) + 1 })), every);
+  }
+  componentWillUnmount() { clearInterval(this._t); }
+
+  hash(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = (h * 16777619) >>> 0; }
+    return h;
+  }
+
+  renderVals() {
+    const p = this.props, mode = p.mode || 'quote', t = this.state.t;
+    const out = { isClock: mode === 'clock', isQuote: mode === 'quote', isRowQuote: mode === 'row-quote', isChgOnly: mode === 'chg-only', isIndex: mode === 'index' };
+    if (out.isRowQuote || out.isChgOnly) out.isQuote = false;
+
+    if (out.isClock) {
+      const n = new Date(), pad = x => String(x).padStart(2, '0');
+      out.clock = pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds());
+    }
+
+    if (out.isQuote || out.isRowQuote || out.isChgOnly) {
+      const base = parseFloat(p.base ?? 0) || 0;
+      const h = this.hash(String(p.seed || '') + t);
+      const j = ((h % 7) - 3) * 0.1;
+      const v = base + j;
+      const priceNum = parseInt(String(p.price || '').replace(/[^0-9]/g, ''), 10);
+      out.price = priceNum ? '₩' + Math.round(priceNum * (1 + j / 100)).toLocaleString('en-US') : (p.price || '');
+      out.chg = (v > 0 ? '+' : '') + v.toFixed(1) + '%';
+      out.chgC = v < 0 ? '#3182F6' : (v > 0 ? '#F04452' : '#4E5968');
+      out.chgSize = p.fontSize || '15px';
+    }
+
+    if (out.isIndex) {
+      const items = String(p.items || '코스피,3412,+0.8%').split(';').map(x => x.split(','));
+      const i = (t + (this.state.bump || 0)) % items.length;
+      const it = items[i] || items[0];
+      out.idxName = it[0];
+      out.idxVal = Number(it[1]) ? Number(it[1]).toLocaleString('en-US') : it[1];
+      out.idxChg = it[2];
+      out.idxC = String(it[2]).startsWith('-') ? '#3182F6' : '#F04452';
+      out.next = () => this.setState(s => ({ bump: (s.bump || 0) + 1 }));
+    }
+
+    return out;
+  }
+}
+</script>
+</body>
+</html>

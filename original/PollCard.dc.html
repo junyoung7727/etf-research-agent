@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="border-radius: 18px; background: #F7F8FA; padding: 16px 16px 16px; font-family: Pretendard, -apple-system, sans-serif;">
+  <sc-if value="{{ hasHead }}">
+    <div style="display: flex; align-items: center; gap: 7px; margin-bottom: 12px;">
+      <dc-import name="SectorIcon" style="flex-shrink: 0;" hint-size="18px,18px" theme="{{ poll.theme }}" bg="{{ poll.logoBg }}" size="18"></dc-import>
+      <span style="font-size: 12.5px; font-weight: 800; color: #4E5968;">{{ poll.short }} · 오늘의 투표</span>
+    </div>
+  </sc-if>
+  <sc-if value="{{ poll.notVoted }}" hint-placeholder-val="{{ true }}">
+    <div style="font-size: 17px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.35; color: #191F28;">이 전망, 당신이라면?</div>
+    <div style="font-size: 12.5px; color: #6B7684; margin-top: 4px;">{{ poll.count }}명이 골랐어요</div>
+    <div style="display: flex; gap: 8px; margin-top: 12px;">
+      <sc-for list="{{ poll.opts }}" as="po" hint-placeholder-count="3">
+        <div data-etf="{{ po.etf }}" data-v="{{ po.k }}" onClick="{{ onVote }}" style="flex: 1; height: 40px; border-radius: 10px; background: {{ po.bg }}; color: {{ po.c }}; font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center; cursor: pointer;" style-active="transform: scale(0.97);">{{ po.label }}</div>
+      </sc-for>
+    </div>
+  </sc-if>
+  <sc-if value="{{ poll.voted }}">
+    <div style="font-size: 17px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.35; color: #191F28;"><span style="color: {{ poll.topC }};">{{ poll.topLabel }}</span> 선택이 더 많아요</div>
+    <div style="font-size: 12.5px; color: #6B7684; margin-top: 4px;">{{ poll.count }}명 참여 · 나도 포함</div>
+    <div style="display: flex; gap: 3px; margin-top: 12px; height: 12px;">
+      <sc-for list="{{ poll.segs }}" as="sg" hint-placeholder-count="3">
+        <div style="flex: {{ sg.flex }}; min-width: 0; border-radius: 5px; background: {{ sg.c }};"></div>
+      </sc-for>
+    </div>
+    <div style="display: flex; gap: 3px; margin-top: 6px;">
+      <sc-for list="{{ poll.segs }}" as="sg" hint-placeholder-count="3">
+        <span style="flex: {{ sg.flex }}; min-width: 0; font-family: 'JetBrains Mono', Pretendard, monospace; font-size: 13px; font-weight: 800; color: {{ sg.c }}; white-space: nowrap; overflow: hidden;">{{ sg.pctT }}</span>
+      </sc-for>
+    </div>
+    <div style="display: flex; gap: 8px; margin-top: 12px;">
+      <sc-for list="{{ poll.segs }}" as="sg" hint-placeholder-count="3">
+        <div data-etf="{{ sg.etf }}" data-v="{{ sg.k }}" onClick="{{ onVote }}" style="flex: 1; height: 40px; border-radius: 10px; background: {{ sg.btnBg }}; color: {{ sg.btnC }}; border: 1.5px solid {{ sg.btnLine }}; font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center; cursor: pointer;" style-active="transform: scale(0.97);">{{ sg.label }}</div>
+      </sc-for>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 370, &quot;height&quot;: 200}, &quot;poll&quot;: {&quot;editor&quot;: null, &quot;default&quot;: null, &quot;tsType&quot;: &quot;object&quot;}, &quot;showHead&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;}, &quot;onVote&quot;: {&quot;editor&quot;: null, &quot;default&quot;: null, &quot;tsType&quot;: &quot;(e) =&gt; void&quot;}}">
+class Component extends DCLogic {
+  renderVals() { const p = this.props; return { poll: p.poll || { opts: [], segs: [] }, hasHead: !!p.showHead, onVote: p.onVote || (() => {}) }; }
+}
+</script>
+</body>
+</html>

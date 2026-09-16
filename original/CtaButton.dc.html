@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div onClick="{{ onClick }}" style="height: {{ h }}; border-radius: 14px; background: {{ bg }}; color: {{ fg }}; font-size: 15.5px; font-weight: 800; letter-spacing: -0.01em; display: flex; align-items: center; justify-content: center; cursor: {{ cursor }}; transition: background 0.2s; font-family: Pretendard, -apple-system, sans-serif; user-select: none; flex: {{ flex }}; width: {{ w }}; box-sizing: border-box;" style-active="transform: scale(0.985);">{{ label }}</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 360, &quot;height&quot;: 80}, &quot;label&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;확인&quot;, &quot;tsType&quot;: &quot;string&quot;}, &quot;tone&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;primary&quot;, &quot;options&quot;: [&quot;primary&quot;, &quot;dark&quot;, &quot;danger&quot;, &quot;soft&quot;], &quot;tsType&quot;: &quot;string&quot;}, &quot;size&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;md&quot;, &quot;options&quot;: [&quot;md&quot;, &quot;sm&quot;], &quot;tsType&quot;: &quot;string&quot;}, &quot;disabled&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;}, &quot;grow&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;}, &quot;onClick&quot;: {&quot;editor&quot;: null, &quot;default&quot;: null, &quot;tsType&quot;: &quot;() =&gt; void&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, tone = p.disabled ? 'disabled' : (p.tone || 'primary');
+    const T = {
+      primary: ['#3D34E0', '#FFFFFF'], dark: ['#191F28', '#FFFFFF'], danger: ['#F04452', '#FFFFFF'],
+      soft: ['#F2F4F6', '#4E5968'], disabled: ['#F2F4F6', '#B0B8C1']
+    }[tone] || ['#3D34E0', '#FFFFFF'];
+    return { label: p.label || '', bg: T[0], fg: T[1], h: (p.size === 'sm' ? 46 : 54) + 'px', cursor: p.disabled ? 'default' : 'pointer', flex: p.grow ? '1' : 'none', w: p.grow ? '100%' : 'auto',
+      onClick: p.disabled ? (() => {}) : (p.onClick || (() => {})) };
+  }
+}
+</script>
+</body>
+</html>

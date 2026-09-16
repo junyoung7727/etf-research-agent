@@ -1,0 +1,2 @@
+# Official Kiwoom Exec MCP. Pin source; credentials are injected only at runtime.
+kiwoom-exec-mcp @ git+https://github.com/Kiwoom-Securities/Kiwoom-REST-API.git@953e5dbff123f437ab4d11a78a95191a685eb51f#subdirectory=mcp_exec

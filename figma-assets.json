@@ -1,0 +1,58 @@
+﻿{
+    "search":  {
+                   "url":  "https://www.figma.com/api/mcp/asset/f7fcfea9-6014-43ba-9c4f-99e3fafc9fd9.svg",
+                   "nodeId":  "63:116"
+               },
+    "menu":  {
+                 "url":  "https://www.figma.com/api/mcp/asset/6fb2b385-ab2d-43fe-9cc6-4d718576c138.svg",
+                 "nodeId":  "63:116"
+             },
+    "home":  {
+                 "url":  "https://www.figma.com/api/mcp/asset/149502aa-0374-4c3b-bd74-d73966021717.svg",
+                 "nodeId":  "63:116"
+             },
+    "watch":  {
+                  "url":  "https://www.figma.com/api/mcp/asset/c7fbf36c-518d-43b7-837b-b80c9f598d47.svg",
+                  "nodeId":  "63:116"
+              },
+    "explore":  {
+                    "url":  "https://www.figma.com/api/mcp/asset/975efc8d-0ee1-40e3-bddc-427460eee8b9.svg",
+                    "nodeId":  "63:116"
+                },
+    "chevron":  {
+                    "url":  "https://www.figma.com/api/mcp/asset/3fcd0db9-c6e3-4dde-a469-069db2c49b5f.svg",
+                    "nodeId":  "63:116"
+                },
+    "fund-0":  {
+                   "url":  "https://www.figma.com/api/mcp/asset/ed74b4da-2e11-47ee-b9b4-82ca8e9695c3.svg",
+                   "nodeId":  "64:181"
+               },
+    "fund-1":  {
+                   "url":  "https://www.figma.com/api/mcp/asset/7cfdd8ff-ec3b-4148-b224-1ccc804a1637.svg",
+                   "nodeId":  "64:181"
+               },
+    "fund-2":  {
+                   "url":  "https://www.figma.com/api/mcp/asset/0c2442ec-504a-425a-b4fe-345d8c16a2b3.svg",
+                   "nodeId":  "64:181"
+               },
+    "fund-3":  {
+                   "url":  "https://www.figma.com/api/mcp/asset/83eecea4-163c-451b-9a94-fdb6c0e6431b.svg",
+                   "nodeId":  "64:181"
+               },
+    "fund-4":  {
+                   "url":  "https://www.figma.com/api/mcp/asset/6002cd4d-dfed-433a-aa38-f785975e24b2.svg",
+                   "nodeId":  "64:181"
+               },
+    "fund-5":  {
+                   "url":  "https://www.figma.com/api/mcp/asset/e221744c-b30b-4b62-b319-da1d5c5599bb.svg",
+                   "nodeId":  "64:181"
+               },
+    "back":  {
+                 "url":  "https://www.figma.com/api/mcp/asset/c329de97-0594-4203-83e3-5cbc477a579d.svg",
+                 "nodeId":  "68:195"
+             },
+    "heart":  {
+                  "url":  "https://www.figma.com/api/mcp/asset/c7fbf36c-518d-43b7-837b-b80c9f598d47.svg",
+                  "nodeId":  "63:116"
+              }
+}

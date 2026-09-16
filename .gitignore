@@ -1,0 +1,16 @@
+node_modules/
+dist/
+dist-mobile/
+audit-launch.json
+.venv/
+__pycache__/
+.pytest_cache/
+.env
+.env.*
+!.env.example
+data/
+test-results/
+playwright-report/
+*.log
+src/original/generated/
+artifacts/

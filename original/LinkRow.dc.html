@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div onClick="{{ onClick }}" style="display: flex; align-items: center; justify-content: {{ justify }}; gap: 6px; min-height: 44px; padding: {{ pad }}; border-radius: {{ radius }}; background: {{ bg }}; border-top: {{ topLine }}; cursor: pointer; font-family: Pretendard, -apple-system, sans-serif; box-sizing: border-box;" style-active="opacity: 0.7;">
+  <span style="min-width: 0; font-size: 14px; font-weight: {{ fw }}; color: {{ c }}; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: {{ flex }};">{{ label }}</span>
+  <dc-import name="Chevron" hint-size="14px,14px" size="14" color="{{ c }}" dir="{{ dir }}"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 360, &quot;height&quot;: 60}, &quot;label&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;자세히 보기&quot;, &quot;tsType&quot;: &quot;string&quot;}, &quot;variant&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;inline&quot;, &quot;options&quot;: [&quot;inline&quot;, &quot;card&quot;, &quot;accent&quot;], &quot;tsType&quot;: &quot;string&quot;}, &quot;open&quot;: {&quot;editor&quot;: null, &quot;default&quot;: null, &quot;tsType&quot;: &quot;boolean | null&quot;}, &quot;center&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;}, &quot;muted&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;}, &quot;divider&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;}, &quot;onClick&quot;: {&quot;editor&quot;: null, &quot;default&quot;: null, &quot;tsType&quot;: &quot;() =&gt; void&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, v = p.variant || 'inline';
+    const accent = v === 'accent', card = v === 'card' || accent, center = !!p.center || card;
+    return {
+      label: p.label || '', dir: p.open === true ? 'up' : (p.open === false ? 'down' : 'right'),
+      c: accent ? '#3D34E0' : (p.muted ? '#4E5968' : '#191F28'), fw: p.muted ? '700' : '800',
+      bg: accent ? 'linear-gradient(100deg, rgba(61,52,224,0.09), rgba(61,52,224,0.05))' : (card ? '#F7F8FA' : 'transparent'),
+      radius: card ? '12px' : '0', pad: card ? '0 16px' : '0',
+      justify: center ? 'center' : 'flex-start', flex: center ? 'none' : '1',
+      topLine: p.divider ? '1px solid #F2F4F6' : 'none',
+      onClick: p.onClick || (() => {})
+    };
+  }
+}
+</script>
+</body>
+</html>

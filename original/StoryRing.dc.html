@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div data-etf="{{ etf }}" onClick="{{ onOpen }}" style="position: relative; width: {{ box }}; height: {{ box }}; border-radius: 999px; padding: {{ pad }}; box-sizing: border-box; background: {{ ring }}; cursor: pointer; flex-shrink: 0;">
+  <div style="width: 100%; height: 100%; border-radius: 999px; border: 2px solid #FFFFFF; box-sizing: border-box; background: {{ logoBg }}; color: #FFFFFF; font-family: 'JetBrains Mono', Pretendard, monospace; font-size: {{ tickerSize }}; font-weight: 700; display: flex; align-items: center; justify-content: center;">{{ ticker }}</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 90, &quot;height&quot;: 90}, &quot;etf&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;SOLR&quot;, &quot;tsType&quot;: &quot;string&quot;}, &quot;ticker&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;TI&quot;, &quot;tsType&quot;: &quot;string&quot;}, &quot;logoBg&quot;: {&quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#E8A13D&quot;, &quot;options&quot;: [&quot;#E8A13D&quot;, &quot;#3D34E0&quot;, &quot;#2563C9&quot;], &quot;tsType&quot;: &quot;string&quot;}, &quot;seen&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;}, &quot;size&quot;: {&quot;editor&quot;: &quot;int&quot;, &quot;default&quot;: 40, &quot;min&quot;: 28, &quot;max&quot;: 72, &quot;tsType&quot;: &quot;number&quot;}, &quot;onOpen&quot;: {&quot;editor&quot;: null, &quot;tsType&quot;: &quot;(e: MouseEvent) =&gt; void&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const size = p.size ?? 40;
+    return {
+      etf: p.etf ?? '',
+      onOpen: p.onOpen,
+      ring: p.seen ? '#DDDDE3' : 'linear-gradient(45deg, #F58529, #DD2A7B, #8134AF, #515BD4)',
+      pad: (p.seen ? 1.5 : 2.5) + 'px',
+      box: size + 'px',
+      logoBg: p.logoBg ?? '#3D34E0',
+      ticker: p.ticker ?? 'TI',
+      tickerSize: Math.max(9, Math.round(size * 0.28)) + 'px'
+    };
+  }
+}
+</script>
+</body>
+</html>

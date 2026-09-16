@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<span onClick="{{ onClick }}" style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-weight: {{ fw }}; color: {{ c }}; background: {{ bg }}; border: {{ border }}; border-radius: 10px; padding: 8px 13px; cursor: pointer; white-space: nowrap; font-family: Pretendard, -apple-system, sans-serif; transition: background 0.15s, color 0.15s;" style-active="opacity: 0.7;">
+  <sc-if value="{{ hasPlus }}"><svg width="12" height="12" viewBox="0 0 14 14"><path d="M7 2v10M2 7h10" style="stroke: #4E5968; stroke-width: 1.9; stroke-linecap: round;"></path></svg></sc-if>
+  {{ label }}
+</span>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 160, &quot;height&quot;: 60}, &quot;label&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;칩&quot;, &quot;tsType&quot;: &quot;string&quot;}, &quot;on&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;}, &quot;variant&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;filter&quot;, &quot;options&quot;: [&quot;filter&quot;, &quot;add&quot;], &quot;tsType&quot;: &quot;string&quot;}, &quot;onClick&quot;: {&quot;editor&quot;: null, &quot;default&quot;: null, &quot;tsType&quot;: &quot;() =&gt; void&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, on = !!p.on, dashed = p.variant === 'add';
+    return {
+      label: p.label || '', hasPlus: dashed,
+      fw: on ? '800' : '600',
+      c: dashed ? '#4E5968' : (on ? '#191F28' : '#6B7684'),
+      bg: dashed ? 'transparent' : (on ? '#F2F4F6' : 'transparent'),
+      border: dashed ? '1px dashed #D5DAE0' : '1px solid transparent',
+      onClick: p.onClick || (() => {})
+    };
+  }
+}
+</script>
+</body>
+</html>
