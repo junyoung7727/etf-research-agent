@@ -35,3 +35,9 @@ class CQToolsTests(unittest.TestCase):
             'holdings_date':'2026-10-06','date_policy':'exact'})
         self.assertEqual(result['result']['status'],'invalid_or_unavailable')
         self.assertEqual(len(self.calls),0)
+
+    def test_korean_market_day_uses_korean_midnight_not_utc_midnight(self):
+        self.tools.store.cutoff='2026-10-04T16:00:00+00:00'
+        self.assertEqual(str(self.tools.check_date('2026-10-05')),'2026-10-05')
+        self.assertEqual(self.tools.time_bounds('2026-10-05','2026-10-05'),{
+            'start_at':'2026-10-05T00:00:00+09:00','end_at':'2026-10-06T00:00:00+09:00'})

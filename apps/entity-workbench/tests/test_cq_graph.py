@@ -9,6 +9,19 @@ def catalog():
 
 
 class GraphFactsTests(unittest.TestCase):
+    def test_excerpt_search_and_return_do_not_leak_later_or_undated_content(self):
+        design=catalog();obj=design['objects'][0]
+        obj['columns'] += [{'property':p,'mappingStatus':'ready'} for p in ('leadText','leadObservedAt')]
+        calls=[]
+        def run(q,p):
+            calls.append((q,p))
+            return [{'id':str(i),'properties':{'leadText':'later fact','leadObservedAt':stamp}}
+                    for i,stamp in enumerate((None,'2026-10-06T00:00:00+00:00','2026-10-04T00:00:00+00:00'))]
+        graph=GraphFacts(run,design,'2026-10-05T00:00:00+00:00')
+        rows=graph.nodes('Company',query='fact')
+        self.assertIn('n.leadObservedAt<=datetime($cutoff)',calls[0][0])
+        self.assertEqual([r['properties']['leadText'] for r in rows],[None,None,'later fact'])
+
     def test_mixed_identity_and_duplicates_do_not_merge_companies_with_securities(self):
         calls=[]
         def run(q,p):

@@ -60,7 +60,7 @@ class EvidenceStore:
         if type(offset) is not int or offset<0 or type(limit) is not int or not 1<=limit<=100:
             raise ValueError('Page requires nonnegative offset and limit 1..100')
         dataset=self.reference(ref,'dataset')
-        items=dataset['items']
+        items=dataset.get('display_items',dataset['items'])
         return {'items':items[offset:offset+limit],'page':{'offset':offset,'complete':offset+limit>=len(items),
             'next_offset':offset+limit if offset+limit<len(items) else None},'data_scope':dataset['scope'],
             'dataset_ref':ref}

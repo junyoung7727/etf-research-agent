@@ -1,0 +1,28 @@
+"""Read saved benchmark evidence. Never execute queries or treat answered as passed."""
+import json
+import re
+from pathlib import Path
+from paths import ROOT
+
+RUNS=ROOT/'output/cq-tools-benchmark-20261005/agent-runs'
+
+
+def catalog():
+    runs=[]
+    for path in sorted(RUNS.glob('*/benchmark.json'),reverse=True):
+        report=json.loads(path.read_text(encoding='utf8'))
+        runs.append({**report,'run_id':path.parent.name})
+    return {'runs':runs,'coverage':{'status':'not_measured','target':0.8,
+        'definition':'질문 목적에 실제 기여한 객체·관계 사용. 조회 건수나 출처 수로 채점하지 않습니다.'},
+        'implementation_status':'in_progress','planned_cqs':13,
+        'notice':'답변 생성과 CQ 통과는 별도입니다. 현재 결과는 로컬 v2 에이전트가 클라우드 PuppyGraph를 조회한 실행입니다.'}
+
+
+def evidence(run_id,tool_run_id):
+    if not re.fullmatch(r'[A-Za-z0-9_-]+',run_id) or not re.fullmatch(r'cq_[a-f0-9]{32}',tool_run_id):
+        raise ValueError('Invalid evidence identifier')
+    path=RUNS/run_id/'tools'/(tool_run_id+'.json')
+    if not path.is_file():raise ValueError('Evidence not found')
+    record=json.loads(path.read_text(encoding='utf8'))
+    # Full stored datasets are server evidence; the dashboard shows the exact public response.
+    return {key:record[key] for key in ('tool','arguments','response','cutoff','elapsed_ms','queries','error')}

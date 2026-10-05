@@ -23,13 +23,15 @@ class PuppyGraphViewerTests(unittest.TestCase):
             calls.append(query)
             start=20 if 'SKIP 20' in query else 0
             return [{'sourceId':'company','targetId':'event','source':{'name':'A'},'target':{},
-                     'key0':str(i),'prop_roleCode':'ROLE'+str(i),'prop_mentionedName':'A'} for i in range(start,22)][:21]
+                     'key0':str(i),'prop_roleCode':'ROLE'+str(i),'prop_mentionedName':'A',
+                     'prop_argumentGroup':i} for i in range(start,22)][:21]
         first=connections('SourceEvent','event',run=run,design=design)
         second=connections('SourceEvent','event',first['cursor'],run=run,design=design)
         self.assertFalse(first['complete']);self.assertTrue(second['complete'])
         self.assertEqual(len({e['key'] for e in first['edges']+second['edges']}),22)
         self.assertTrue(all('b.id=$id' in q for q in calls))
         self.assertTrue(all(e['source']=='["Company","company"]' for e in second['edges']))
+        self.assertEqual({e['properties']['argumentGroup'] for e in first['edges']+second['edges']},set(range(22)))
         with self.assertRaises(ValueError):connections('SourceEvent','other',first['cursor'],run=run,design=design)
 
     def test_focus_self_links_match_both_directions(self):

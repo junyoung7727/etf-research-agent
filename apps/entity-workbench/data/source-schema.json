@@ -3777,6 +3777,12 @@
         "type": "text",
         "nullable": false,
         "default": "'unknown'::text"
+      },
+      {
+        "name": "withdrawn_at",
+        "type": "timestamp with time zone",
+        "nullable": true,
+        "default": null
       }
     ],
     "movement_items": [
@@ -10705,5 +10711,14 @@
         "validated": true
       }
     ]
-  }
+  },
+  "extensions": [
+    {
+      "tables": [
+        "outlook_analyses",
+        "movement_analyses"
+      ],
+      "capturedAt": "2026-10-05T15:36:53.843459+00:00"
+    }
+  ]
 }

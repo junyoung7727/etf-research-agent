@@ -1,5 +1,5 @@
 """Audited v2 tool provider. All factual inputs come from the deployed graph."""
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from time import perf_counter
 from jsonschema import Draft202012Validator
 from backend.cq_graph import GraphFacts
@@ -37,6 +37,14 @@ class CQTools:
             {'dataset_ref':RESULT_REF,'offset':{'type':'integer','minimum':0},'limit':LIMIT},['dataset_ref','offset'],self.page)
         self.register('get_etf_holdings','Read all direct constituent holdings on an exact or explicitly selected earlier date. Preserve original weights and unresolved assets; no top-N or weight normalization.',
             {'etf_ref':REF,'holdings_date':STRING,'date_policy':{'enum':['exact','latest_on_or_before']},'limit':LIMIT},['etf_ref','holdings_date','date_policy'],self.holdings)
+        from backend.cq_events import EventTools
+        self.events=EventTools(self)
+        from backend.cq_market import MarketTools
+        self.market=MarketTools(self)
+        from backend.cq_financial import FinancialTools
+        self.financial=FinancialTools(self)
+        from backend.cq_context import ContextTools
+        self.context=ContextTools(self)
 
     def register(self,name,description,properties,required,handler):
         parameters={'type':'object','properties':properties,'required':required,'additionalProperties':False}
@@ -57,18 +65,26 @@ class CQTools:
         return self.store.commit(name,arguments,result,elapsed_ms=round((perf_counter()-started)*1000,2),
             queries=self.graph.queries[begin:],error=error,dataset=dataset)
 
-    def result(self,items,*,selection=None,scope=None,limit=20):
+    def result(self,items,*,selection=None,scope=None,limit=20,display_items=None):
         scope={'cutoff':self.store.cutoff,'source':'PuppyGraph',**(scope or {})}
-        value={'items':items[:limit],'data_scope':scope,'total_rows':len(items),
+        visible=items if display_items is None else display_items
+        value={'items':visible[:limit],'data_scope':scope,'total_rows':len(items),
                'page':{'complete':len(items)<=limit,'next_offset':limit if len(items)>limit else None}}
         if selection is not None:value['selection']=selection
-        return value,{'items':items,'scope':scope,'selection':selection}
+        dataset={'items':items,'scope':scope,'selection':selection}
+        if display_items is not None:dataset['display_items']=display_items
+        return value,dataset
 
     def schema(self,object_types=None):
         selected=object_types or list(self.graph.objects)
         for kind in selected:self.graph.properties(kind)
-        return {'objects':[self.graph.objects[k] for k in selected],
-            'links':[r for r in self.graph.links.values() if r['source'] in selected or r['target'] in selected],
+        objects=[{'object_type':k,'description':self.graph.objects[k]['description'],
+            'properties':[{key:column.get(key) for key in ('property','type','description','mappingStatus')}
+                for column in self.graph.objects[k]['columns'] if column.get('property')]} for k in selected]
+        if not object_types:
+            objects=[{k:v for k,v in o.items() if k!='properties'} for o in objects]
+        return {'objects':objects,
+            'links':[{key:r[key] for key in ('id','source','target','description','inverse')} for r in self.graph.links.values() if r['source'] in selected or r['target'] in selected],
             'cutoff':self.store.cutoff,'fact_source':'PuppyGraph','supported_tools':list(self.handlers)},None
 
     def search(self,object_type,query='',filters=None,limit=20):
@@ -89,8 +105,14 @@ class CQTools:
 
     def check_date(self,value):
         parsed=date.fromisoformat(value)
-        if parsed>datetime.fromisoformat(self.store.cutoff).date():raise ValueError('Requested date is after the analysis cutoff')
+        if parsed>datetime.fromisoformat(self.store.cutoff).astimezone(timezone(timedelta(hours=9))).date():raise ValueError('Requested date is after the analysis cutoff')
         return parsed
+
+    def time_bounds(self,start_date,end_date):
+        start=self.check_date(start_date);end=self.check_date(end_date)
+        if start>end:raise ValueError('Invalid dates')
+        return {'start_at':start.isoformat()+'T00:00:00+09:00',
+                'end_at':(end+timedelta(days=1)).isoformat()+'T00:00:00+09:00'}
 
     def holdings(self,etf_ref,holdings_date,date_policy,limit=20):
         requested=self.check_date(holdings_date)

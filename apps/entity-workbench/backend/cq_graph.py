@@ -1,5 +1,6 @@
 """Deterministic, allowlisted read queries against PuppyGraph, never a SQL fallback."""
 import copy
+from datetime import datetime
 from time import perf_counter
 from backend.graph_queries import name
 from backend.puppygraph_viewer import normalize
@@ -45,7 +46,11 @@ class GraphFacts:
         if query:
             params['text']=query
             candidates=[p for p in ('name','title','displayTitle','ticker','seriesName','metricCode') if p in props]
-            conditions.append('('+' OR '.join(['n.id=$text']+['n.'+name(p)+' CONTAINS $text' for p in candidates])+')')
+            matches=['n.id=$text']+['n.'+name(p)+' CONTAINS $text' for p in candidates]
+            if 'leadText' in props and 'leadObservedAt' in props:
+                params['cutoff']=self.cutoff
+                matches.append('(n.leadObservedAt<=datetime($cutoff) AND n.leadText CONTAINS $text)')
+            conditions.append('('+' OR '.join(matches)+')')
         for i,(prop,value) in enumerate((filters or {}).items()):
             if prop not in props:raise ValueError('Unknown property: '+prop)
             if props[prop]['mappingStatus'] in ('unmapped','needsCorrection'):
@@ -61,6 +66,11 @@ class GraphFacts:
 
     def object(self, kind, properties):
         definition=self.objects[kind]
+        properties=dict(properties)
+        if 'leadText' in properties:
+            observed=properties.get('leadObservedAt')
+            if not observed or datetime.fromisoformat(observed.replace('Z','+00:00'))>datetime.fromisoformat(self.cutoff):
+                properties['leadText']=None
         return {'object_type':kind,'object_id':properties['id'],
                 'title':properties.get(definition['titleProperty']) or properties['id'], 'properties':properties}
 
@@ -80,17 +90,18 @@ class GraphFacts:
         return {'items':results,'requested_count':len(refs),'distinct_count':len(unique),
                 'completeness':'complete' if len(found)==len(unique) else 'partial'}
 
-    def linked(self, refs, relation, direction='forward'):
+    def linked(self, refs, relation, direction='forward', *, where=None, parameters=None):
         if relation not in self.links:raise ValueError('Unknown link type')
         if direction not in ('forward','reverse'):raise ValueError('Unknown link direction')
         link=self.links[relation]
         if link['physicalMapping']['kind']=='blocked':raise ValueError('Link mapping is not implemented')
         start,end=(link['source'],link['target']) if direction=='forward' else (link['target'],link['source'])
         if any(r['object_type']!=start for r in refs):raise ValueError('Reference type does not match link direction')
-        params={'ids':list(dict.fromkeys(r['object_id'] for r in refs))}
+        params={**(parameters or {}),'ids':list(dict.fromkeys(r['object_id'] for r in refs))}
         if not params['ids']:return []
         pattern='(a:'+name(start)+')'+('-[r:'+name(relation)+']->' if direction=='forward' else '<-[r:'+name(relation)+']-')+'(n:'+name(end)+')'
         conditions=['a.id IN $ids']
+        if where:conditions.append(where)
         for typ,alias in [(start,'a'),(end,'n')]:
             clause=self.cutoff_clause(typ,alias,params)
             if clause:conditions.append(clause)

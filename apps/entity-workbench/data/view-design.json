@@ -1,5 +1,5 @@
 {
-  "revision": 7,
+  "revision": 8,
   "designedAt": "2026-10-05",
   "status": "design_only",
   "schema": "ontology_view",
@@ -626,6 +626,18 @@
           "column": "value_decimal"
         }
       }
+    },
+    "ETFOutlookReport": {
+      "viewName": "ontology_view.etf_outlook_report",
+      "grain": "One published v2 outlook report for an ETF. The document preserves an earlier interpretation and its analysis cutoff.",
+      "issues": [],
+      "referenceColumns": []
+    },
+    "ETFPriceExplanation": {
+      "viewName": "ontology_view.etf_price_explanation",
+      "grain": "One published v2 explanation of an ETF price movement. The document preserves an earlier interpretation and its analysis cutoff.",
+      "issues": [],
+      "referenceColumns": []
     }
   },
   "relations": {
@@ -1555,6 +1567,48 @@
         "properties": {},
         "endpointPolicy": "existing_typed_objects_only"
       }
+    },
+    "ETFOutlookReport_ForETF_ETF": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "The ETF discussed by this published analysis report.",
+      "issues": [],
+      "edgeIdentity": [
+        "id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "ETFOutlookReport",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "etf_instrument_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "ETFPriceExplanation_ForETF_ETF": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "The ETF discussed by this published analysis report.",
+      "issues": [],
+      "edgeIdentity": [
+        "id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "ETFPriceExplanation",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "etf_instrument_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
     }
   },
   "definitionHashes": {
@@ -1581,6 +1635,10 @@
     "link_types/ETFHolding_ForETF_ETF.yaml": "f4f8e9e3e3e62745712f56cc797e9ebae0cc7a749a6133215444a92ffb947f93",
     "link_types/ETFHolding_HoldsSecurity_Equity.yaml": "8e55405371a9ac3e3b4a9af3131059385ef078fbebfb655bdbf1d1826d66a714",
     "link_types/ETFHolding_HoldsSecurity_ETF.yaml": "dc1dba83037d5d97eb60ace15ffacd026cb66599ca76f49ab4d67309f8c7ca76",
+    "object_types/ETFOutlookReport.yaml": "06dbb69ed40a78f5d3fa19f00078985d9e4e43047e9ff7f9d62d6a6aa1ebfeb5",
+    "link_types/ETFOutlookReport_ForETF_ETF.yaml": "c4bddc40fb81cbc69fa985b5097f52bf50dc5ff6dae7431f6a5006c2e0fc7490",
+    "object_types/ETFPriceExplanation.yaml": "610fc2ce809e10707de5fc107b07920793e8688736a1747655540e2a61223442",
+    "link_types/ETFPriceExplanation_ForETF_ETF.yaml": "baa3573c9dc39e32f88462c6d62cf5602109b5ae0814fc35ea63263bcb756c12",
     "object_types/Equity.yaml": "c7bd7b49954691de605471ed7581766dcc0ec7a177a1fc1c04e7de48b73dc83f",
     "object_types/EventMeasurement.yaml": "498479869f4f84554d3800541d5da87fe15f24ef47f6742309b3121f27d67687",
     "link_types/EventMeasurement_ForEvent_SourceEvent.yaml": "3f2b48bc9cfedfef54a08b3fed734ccaefaae7d760ad1ef2adf806ce208c9238",
