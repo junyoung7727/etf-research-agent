@@ -41,3 +41,18 @@ class CQToolsTests(unittest.TestCase):
         self.assertEqual(str(self.tools.check_date('2026-10-05')),'2026-10-05')
         self.assertEqual(self.tools.time_bounds('2026-10-05','2026-10-05'),{
             'start_at':'2026-10-05T00:00:00+09:00','end_at':'2026-10-06T00:00:00+09:00'})
+
+    def test_ticker_batch_preserves_missing_codes_and_does_not_query_per_security(self):
+        calls=[]
+        def nodes(kind,**kwargs):
+            calls.append((kind,kwargs))
+            return [{'object_type':kind,'object_id':'a','title':'A','properties':{'ticker':'001234'}}]
+        self.tools.graph.nodes=nodes
+        result,_=self.tools.resolve_securities(['001234','009999','001234'],'XKRX','Equity')
+        self.assertEqual(len(calls),1)
+        self.assertEqual(calls[0][1]['filters']['ticker'],['001234','009999'])
+        self.assertEqual(result['selection']['requested_count'],3)
+        self.assertEqual(result['selection']['distinct_count'],2)
+        self.assertEqual(result['selection']['completeness'],'partial')
+        self.assertEqual(result['items'][1]['status'],'not_found_at_cutoff')
+        self.assertIsNone(result['items'][1]['object_id'])

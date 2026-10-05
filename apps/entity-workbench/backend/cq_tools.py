@@ -31,6 +31,9 @@ class CQTools:
             {'object_type':STRING,'query':{'type':'string','maxLength':120},'filters':{'type':'object'},'limit':LIMIT},['object_type'],self.search)
         self.register('get_objects','Resolve a batch of typed IDs. Keep missing IDs and distinct company/security identities.',
             {'object_refs':REFS},['object_refs'],self.get)
+        self.register('resolve_securities','Resolve a list of exchange tickers in one batch before querying their prices, flows or events. For Korean stocks use market_code XKRX. Return a reusable selection; preserve missing or ambiguous codes. Prefer this to one search per ticker.',
+            {'tickers':{'type':'array','items':STRING,'minItems':1,'maxItems':1000},'market_code':STRING,
+             'security_type':{'enum':['Equity','ETF','both']}},['tickers','market_code'],self.resolve_securities)
         self.register('get_linked_objects','Follow one declared graph link for a batch of objects; preserve source, direction and each role-bearing edge.',
             {'object_refs':REFS,'link_type':STRING,'direction':{'enum':['forward','reverse']},'limit':LIMIT},['object_refs','link_type'],self.linked)
         self.register('get_result_page','Read another page of a stored full dataset without rerunning the graph query or changing its cutoff.',
@@ -45,6 +48,8 @@ class CQTools:
         self.financial=FinancialTools(self)
         from backend.cq_context import ContextTools
         self.context=ContextTools(self)
+        from backend.cq_holdings import HoldingCalculations
+        self.holding_calculations=HoldingCalculations(self)
 
     def register(self,name,description,properties,required,handler):
         parameters={'type':'object','properties':properties,'required':required,'additionalProperties':False}
@@ -94,6 +99,24 @@ class CQTools:
     def get(self,object_refs):
         selection=self.graph.get(object_refs)
         return self.result(selection['items'],selection=selection,limit=100)
+
+    def resolve_securities(self,tickers,market_code,security_type='both'):
+        kinds=['Equity','ETF'] if security_type=='both' else [security_type]
+        found={}
+        for kind in kinds:
+            for obj in self.graph.nodes(kind,filters={'ticker':list(dict.fromkeys(tickers)),'marketCode':market_code}):
+                found.setdefault(obj['properties']['ticker'],[]).append(obj)
+        items=[]
+        for ticker in dict.fromkeys(tickers):
+            candidates=found.get(ticker,[]);obj=candidates[0] if len(candidates)==1 else None
+            items.append({'requested_ticker':ticker,'requested_market':market_code,
+                'object_type':obj['object_type'] if obj else None,'object_id':obj['object_id'] if obj else None,
+                'status':'resolved' if obj else 'ambiguous' if candidates else 'not_found_at_cutoff',
+                'object':obj,'candidates':[{k:c[k] for k in ('object_type','object_id','title')} for c in candidates]})
+        selection={'items':items,'requested_count':len(tickers),'distinct_count':len(items),
+            'completeness':'complete' if all(r['status']=='resolved' for r in items) else 'partial'}
+        return self.result(items,selection=selection,limit=100,scope={'dataset_kind':'security_resolution',
+            'identity':'exchange market plus exact ticker; no name guessing'})
 
     def linked(self,object_refs,link_type,direction='forward',limit=20):
         selection=self.graph.get(object_refs)

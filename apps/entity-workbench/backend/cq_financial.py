@@ -6,6 +6,7 @@ from backend.cq_tools import SELECTOR,STRING,LIMIT,RESULT_REF
 class FinancialTools:
     def __init__(self,tools):
         self.tools=tools;self.graph=tools.graph
+        tools.register('list_macro_series','Discover macro series actually present and available in the graph, including exact IDs, readable names, units, providers and observed dates. A failed name search does not establish missing data.',{},[],self.series)
         tools.register('get_financial_observations','Read company financials or reported segments for a batch or all ETF issuers. Preserve accounting scope, fiscal period, source/derived distinction and revision IDs. Guidance is source-event evidence; it is not automatically consensus.',
             {'targets':SELECTOR,'kind':{'enum':['actual','segment','guidance','consensus']},
              'fiscal_years':{'type':'array','items':{'type':'integer','minimum':1900,'maximum':2100}},
@@ -64,6 +65,13 @@ class FinancialTools:
         rows=[x for x in data['items'] if x.get('object_id')==identifier]
         if len(rows)!=1:raise ValueError('Select one unambiguous observation from this stored dataset')
         return rows[0],data
+
+    def series(self):
+        rows=self.graph.query('MATCH (n:MacroObservation) WHERE n.availableAt<=datetime($cutoff) '
+            'RETURN n.seriesId AS series_id,n.seriesName AS name,n.unit AS unit,n.sourceVendor AS provider,'
+            'min(n.observationDate) AS first_date,max(n.observationDate) AS last_date ORDER BY series_id',
+            {'cutoff':self.tools.store.cutoff},objects=['MacroObservation'])
+        return self.tools.result(rows,scope={'dataset_kind':'available_macro_series'},limit=100)
 
     @staticmethod
     def comparable(a,b,keys):

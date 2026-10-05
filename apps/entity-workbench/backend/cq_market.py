@@ -45,6 +45,11 @@ class MarketTools:
     def flows(self,targets,start_date,end_date,frequency,limit=20):
         kind={'daily':'DailyInvestorFlow','intraday':'IntradayInvestorFlow'}[frequency]
         items,selection,scope=self.observations(targets,start_date,end_date,kind,'instrumentId',limit)
+        currencies={r['object_id']:(r.get('object') or {}).get('properties',{}).get('currencyCode') for r in selection['items']}
+        for item in items:
+            if currencies.get(item['properties'].get('instrumentId'))=='KRW':
+                item['money_in_krw_100million']={k:str(Decimal(str(v))/Decimal('100000000'))
+                    for k,v in item['properties'].items() if k.startswith('netVal') and v is not None}
         return self.tools.result(items,selection=selection,scope={**scope,'dataset_kind':'flow_observations',
             'frequency':frequency,'intraday_interval_semantics':'not_certified' if frequency=='intraday' else None},limit=limit)
 

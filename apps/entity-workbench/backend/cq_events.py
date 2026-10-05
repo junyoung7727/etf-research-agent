@@ -69,8 +69,12 @@ class EventTools:
             'features':[{'measurement_id':m['object_id'],**{k:m['properties'].get(k) for k in (
                 'metricCode','value','unit','periodBasis','reportedText','parseStatus','argumentGroup')}} for m in item['features']],
             'documents':[{'document_ref':{k:d['document'][k] for k in ('object_type','object_id')},
-                'title':d['document']['title'],'evidence_type':d['link_properties'].get('evidenceType')}
-                for d in item['documents']]}
+                'title':d['document']['title'],'evidence_type':d['link_properties'].get('evidenceType'),
+                'evidence_text':d['link_properties'].get('evidenceText'),
+                'available_excerpt':d['document']['properties'].get('leadText'),
+                'read_scope':'stored evidence text and available excerpt; not the complete document'}
+                for d in item['documents']],
+            'stage_scope':'Stage reported by this source account; not a verified current contract status.'}
 
     def search(self,targets,start_date,end_date,time_field,event_types=None,participant_conditions=None,
                feature_filters=None,available_since=None,limit=20):
