@@ -47,7 +47,7 @@ def build_catalog(documents, plan):
         proposal.update(id=name, description=d['description'], identity=copy.deepcopy(d['identity']),
             sourceMapping=copy.deepcopy(sm), readiness='proposal', columns=[
                 column(n, prop, sm['properties'][n], identity=d['identity'] if n==d['primaryKey'] else None)
-                for n, prop in d['properties'].items()])
+                for n, prop in d['properties'].items()] + copy.deepcopy(proposal.get('referenceColumns', [])))
         result['objects'].append(proposal)
     for name, (owner, d) in relations.items():
         sm = d['sourceMapping']
@@ -67,14 +67,70 @@ def build_catalog(documents, plan):
                 'description': evidence['description'], 'source': evidence['source'], 'viewNullable': True,
                 'valuePolicy': 'source_value'})
         result['relations'].append(proposal)
-    names = [v['viewName'] for v in result['objects'] + result['relations']]
-    if len(names)!=len(set(names)) or any(not re.fullmatch(r'ontology_view\.[a-z][a-z0-9_]{0,62}', n) for n in names):
+    attach_physical_sources(result, plan)
+    names = [v['viewName'] for v in result['physicalTables']]
+    if len(names)!=len(set(names)) or any(not re.fullmatch(r'(ontology_view|public)\.[a-z][a-z0-9_]{0,62}', n) for n in names):
         raise ValueError('중복되거나 PostgreSQL 식별자 제한을 벗어난 뷰 이름입니다.')
-    for view in result['objects']+result['relations']:
+    for view in result['physicalTables']:
         cols = [c['column'] for c in view['columns']]
         if len(cols)!=len(set(cols)):
             raise ValueError('중복 뷰 컬럼: '+view['id'])
     return result
+
+
+def attach_physical_sources(result, plan):
+    """Resolve each logical link without manufacturing one physical view per link."""
+    tables = {o['id']: {**copy.deepcopy(o), 'kind': 'object_view', 'primaryKey': ['id']}
+              for o in result['objects']}
+    for name, source in plan['physicalSources'].items():
+        if name in tables:
+            raise ValueError('물리 원본 ID 중복: ' + name)
+        tables[name] = {**copy.deepcopy(source), 'id': name}
+    references = {}
+    for relation in result['relations']:
+        mapping = relation['physicalMapping']
+        kind = mapping['kind']
+        if kind == 'blocked':
+            if relation['readiness'] != 'blocked':
+                raise ValueError('구현 보류 상태 불일치: ' + relation['id'])
+            relation['viewName'] = None
+            continue
+        if kind not in ('object_fk', 'resolved_fk', 'connection_view', 'existing_table'):
+            raise ValueError('알 수 없는 물리 매핑: ' + kind)
+        source = tables.get(mapping['source'])
+        if source is None:
+            raise ValueError('관계 원본 없음: ' + relation['id'])
+        expected = 'object_view' if kind in ('object_fk', 'resolved_fk') else kind
+        if source['kind'] != expected:
+            raise ValueError('관계 원본 종류 불일치: ' + relation['id'])
+        cols = {c['column']: c for c in source['columns']}
+        used = [mapping['fromColumn'], mapping['toColumn'], *mapping['edgeIdColumns'],
+                *mapping['filters'], *mapping['properties'].values()]
+        if any(c not in cols for c in used) or not mapping['edgeIdColumns']:
+            raise ValueError('매핑 컬럼 또는 엣지 식별자 없음: ' + relation['id'])
+        relation['viewName'] = source['viewName']
+        for column_name, target in ((mapping['fromColumn'], relation['source']),
+                                    (mapping['toColumn'], relation['target'])):
+            if cols[column_name]['type'] != 'text':
+                raise ValueError('객체 ID와 참조 타입 불일치: ' + relation['id'])
+            if source['id'] == target and column_name == 'id':
+                continue  # The node's own identifier is not a foreign key.
+            key = (source['id'], column_name, target)
+            reference = references.setdefault(key, {'id': ':'.join(key), 'table': source['id'],
+                'column': column_name, 'target': target, 'targetColumn': 'id', 'relationIds': []})
+            reference['relationIds'].append(relation['id'])
+    for table in tables.values():
+        names = {c['column'] for c in table['columns']}
+        if not table['primaryKey'] or not set(table['primaryKey']) <= names:
+            raise ValueError('물리 원본 식별 키 누락: ' + table['id'])
+        for c in table['columns']:
+            c['keyRoles'] = (['PK'] if c['column'] in table['primaryKey'] else [])
+            c['references'] = [r for r in references.values()
+                               if r['table'] == table['id'] and r['column'] == c['column']]
+            if c['references']:
+                c['keyRoles'].append('FK')
+    result['physicalTables'] = list(tables.values())
+    result['references'] = list(references.values())
 
 
 def read_catalog():

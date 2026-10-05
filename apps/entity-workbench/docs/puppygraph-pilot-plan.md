@@ -1,5 +1,7 @@
 # PuppyGraph 시험 도입·성능 측정 제안
 
+> 2026-10-05 대체됨: 현재 구현 기준은 [객체 뷰와 PuppyGraph 작업 계획](../../../tasks/ontology-views-puppygraph/plan.md)이다. 아래 EventParticipation 객체와 Equity 기반 사건 참여 경로는 옛 제안이며 구현하지 않는다. 현재는 Actor 기반 참여 링크를 사용한다. 아래 성능 목표도 새 계획의 합격 기준으로 자동 승계하지 않는다.
+
 작성: 2026-10-01. 상태: 제안. 설치·DB 변경·성능 측정은 아직 수행하지 않았다.
 
 ## 제안

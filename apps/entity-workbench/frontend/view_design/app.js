@@ -3,7 +3,8 @@ const state = {data:null, kind:'objects', selected:null};
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const json = value => esc(JSON.stringify(value, null, 2));
 const snake = value => value.replace(/([a-z0-9])([A-Z])/g,'$1_$2').replace(/([A-Z])([A-Z][a-z])/g,'$1_$2').toLowerCase();
-const policy = {typed_null_pending:'의미·원본 확인 전 typed NULL',identity_encoding:'원본 키 · 기존 인코딩 유지',explicit_transform:'명시된 값 변환',source_value:'원본 값 유지'};
+const policy = {typed_null_pending:'의미·원본 확인 전 typed NULL',identity_encoding:'원본 키 · 기존 인코딩 유지',explicit_transform:'명시된 값 변환',source_value:'원본 값 유지',resolved_reference:'코드·판본을 객체 ID로 해소 · 다중 매칭 검증'};
+const mappingNames={object_fk:'객체 뷰의 FK 재사용',resolved_fk:'객체 ID로 해소한 FK',connection_view:'공용 연결 뷰',existing_table:'기존 연결 테이블 재사용',blocked:'구현 보류'};
 function sourceText(c){
   if(c.identity) return c.identity.columns.join(' + ')+' / '+c.identity.encoding;
   if(typeof c.source==='string') return c.source;
@@ -27,7 +28,8 @@ function relationContract(v){
   const sm=v.sourceMapping;
   const condition=sm.kind==='propertyMatch'?v.sourceView+'.'+snake(v.match.sourceProperty)+' = '+v.targetView+'.'+snake(v.match.targetProperty):'아래 원본 경로·코드 변환·판본 조건으로 해소';
   const joins=(v.joinContracts||[]).map(j=>'<li><code>'+esc(j.columns.map((c,i)=>j.table+'.'+c+' = '+j.target_table+'.'+j.target_columns[i]).join(' AND '))+'</code> · '+esc(j.constraint)+'</li>').join('');
-  return '<dl><dt>한 행의 의미</dt><dd>'+esc(v.grain)+'</dd><dt>방향</dt><dd>'+esc(v.source)+' → '+esc(v.target)+' · '+esc(v.cardinality)+'</dd><dt>역방향 이름</dt><dd>'+esc(v.inverse.displayName)+' — 같은 뷰를 역방향 조회, 별도 중복 행 없음</dd><dt>edge_id 구성</dt><dd>'+esc(v.edgeIdentity.join(' + '))+'</dd><dt>출발 객체</dt><dd><code>'+esc(v.sourceView)+'</code></dd><dt>도착 객체</dt><dd><code>'+esc(v.targetView)+'</code></dd><dt>연결 조건</dt><dd><code>'+esc(condition)+'</code></dd><dt>대상 해소</dt><dd>존재하는 양 끝 객체와 INNER JOIN. NULL·미매칭은 별도 집계하며 임의 대상 생성 금지.</dd></dl>'+(joins?'<h3>원본 FK 경로 — 조립 시 모든 열 사용</h3><ul>'+joins+'</ul>':'')+'<details open><summary>관계 원본·필터·판본 선택 계약</summary><pre>'+json(sm)+'</pre></details>';
+  const m=v.physicalMapping;
+  return '<dl><dt>관계 한 건의 의미</dt><dd>'+esc(v.grain)+'</dd><dt>방향</dt><dd>'+esc(v.source)+' → '+esc(v.target)+' · '+esc(v.cardinality)+'</dd><dt>역방향 이름</dt><dd>'+esc(v.inverse.displayName)+' — 같은 연결을 반대로 탐색</dd><dt>구현 방식</dt><dd>'+esc(mappingNames[m.kind])+'</dd><dt>엣지 원본</dt><dd>'+esc(v.viewName||'미구현 · 물리 원본 없음')+'</dd><dt>출발 키</dt><dd>'+esc(m.fromColumn||'미정')+' → '+esc(v.source)+'.id</dd><dt>도착 키</dt><dd>'+esc(m.toColumn||'미정')+' → '+esc(v.target)+'.id</dd><dt>엣지 식별 컬럼</dt><dd>'+esc(m.edgeIdColumns?.join(' + ')||'미정')+'</dd><dt>원래 모델의 연결 조건</dt><dd><code>'+esc(condition)+'</code></dd><dt>대상 해소</dt><dd>존재하는 해당 타입의 객체만 연결. NULL·미매칭·다중 매칭은 별도 검증.</dd></dl><details open><summary>물리 매핑 · 필터 · 관계 속성</summary><pre>'+json(m)+'</pre></details>'+(joins?'<h3>원본 FK 경로 — 조립 시 모든 열 사용</h3><ul>'+joins+'</ul>':'')+'<details><summary>관계 원본·필터·판본 선택 계약</summary><pre>'+json(sm)+'</pre></details>';
 }
 function renderDetail(){
   if(state.map) state.map.highlight();
@@ -36,7 +38,8 @@ function renderDetail(){
   if(state.kind==='issues'){
     $('detail').innerHTML='<p class="eyebrow">확인할 사항</p><h2>'+esc(v.title)+'</h2>'+showIssues([v.id])+'<h3>관련 객체</h3><p>'+esc(v.objects.join(', ')||'모든 복합 ID 객체')+'</p>';return;
   }
-  $('detail').innerHTML='<p class="eyebrow">'+(state.kind==='objects'?'OBJECT VIEW':'RELATION VIEW')+'</p><h2>'+esc(v.id)+'</h2><code id="viewName">'+esc(v.viewName)+'</code><p><span class="badge">'+(v.readiness==='blocked'?'구현 보류 · 입력 해소 미확정':'설계안 · DB 미반영')+'</span></p><p>'+esc(v.description)+'</p>'+(state.kind==='objects'?objectContract(v):relationContract(v))+columns(v)+(v.issues.length?'<h3>이 뷰에서 확인할 사항</h3>'+showIssues(v.issues):'<p class="muted">개별 미결 사항 없음. 실제 SQL과 원본 대조 검증은 아직 수행하지 않았습니다.</p>')+'<h3>구현 시 통과해야 할 검사</h3><ul><li>원본 범위 대비 행 수·NULL ID·중복 ID·조인 누락과 다중 매칭 대조</li><li>복합 ID, 단위, 기간, 판본, 원본 값과 변환 결과 대조</li><li>미매핑 상태를 실제 0·빈 문자열·유효 업무 값으로 바꾸지 않는지 확인</li></ul>';
+  const physical=state.data.physicalTables.find(t=>t.id===v.physicalMapping?.source);
+  $('detail').innerHTML='<p class="eyebrow">'+(state.kind==='objects'?'OBJECT VIEW':'LINK MAPPING')+'</p><h2>'+esc(v.id)+'</h2><code id="viewName">'+esc(v.viewName||'물리 원본 미정')+'</code><p><span class="badge">'+(v.readiness==='blocked'?'구현 보류 · 입력 해소 미확정':'설계안 · 실행 검증 별도')+'</span></p><p>'+esc(v.description)+'</p>'+(state.kind==='objects'?objectContract(v):relationContract(v))+(state.kind==='objects'?columns(v):physical?columns(physical):'')+(v.issues.length?'<h3>확인할 사항</h3>'+showIssues(v.issues):'<p class="muted">개별 미결 사항 없음. 실제 SQL과 원본 대조 검증은 별도로 수행합니다.</p>')+'<h3>구현 시 통과해야 할 검사</h3><ul><li>원본 범위 대비 행 수·NULL ID·중복 ID·조인 누락과 다중 매칭 대조</li><li>복합 ID, 단위, 기간, 판본, 원본 값과 변환 결과 대조</li><li>미매핑 상태를 실제 0·빈 문자열·유효 업무 값으로 바꾸지 않는지 확인</li></ul>';
 }
 function renderList(){
   const query=$('search').value.toLowerCase().trim();
@@ -54,7 +57,7 @@ async function start(){
     const response=await fetch('/api/view-design');const data=await response.json();
     if(!response.ok)throw new Error(data.error||'설계 조회 실패');
     state.data=data;
-    $('summary').textContent=data.objects.length+'개 객체 뷰 · '+data.relations.length+'개 관계 뷰 · '+data.issues.length+'개 확인 사항 · 설계 v'+data.revision+' / '+data.designedAt;
+    $('summary').textContent=data.objects.length+'개 객체 뷰 · '+data.relations.length+'개 논리 링크 · '+data.physicalTables.filter(t=>t.kind==='connection_view').length+'개 공용 연결 뷰 · '+data.physicalTables.filter(t=>t.kind==='existing_table').length+'개 기존 테이블 재사용 · 설계 v'+data.revision;
     if(data.modelChanged){$('stale').hidden=false;$('stale').textContent='모델 원본이 설계 검토 시점과 달라졌습니다. 아래는 현재 원본과 기존 설계안의 대조이며, 갱신 검토 전 구현 기준으로 확정하지 마세요.';}
     $('rules').innerHTML=data.rules.map(r=>'<li>'+esc(r)+'</li>').join('');
     for(const kind of ['objects','relations','issues']) $(kind+'Tab').addEventListener('click',()=>selectTab(kind));
@@ -68,12 +71,13 @@ async function start(){
 start();
 
 async function mountViewMap(data){
-  const {edgePath,connectedModel}=await import('/model-layout.mjs');
+  const {edgePath}=await import('/model-layout.mjs');
   const engine=new globalThis.ELK();
   const measure=document.createElement('canvas').getContext('2d');measure.font='700 14px Consolas, monospace';
   const model={objects:data.objects,relations:data.relations.map(r=>({...r,label:r.id.slice(r.source.length+1,-r.target.length-1)}))};
   const objects=new Map(model.objects.map(o=>[o.id,o])),relations=new Map(model.relations.map(r=>[r.id,r]));
-  const tables=new Map([...objects,...relations]);
+  const tables=new Map(data.physicalTables.map(t=>[t.id,t]));
+  const references=new Map(data.references.map(r=>[r.id,r]));
   const HEADER=90,ROW=27;
   const area=$('viewMap'),scene=$('mapScene'),focus=$('mapFocus');
   let layout=null,zoom=1,pan={x:0,y:0},version=0,drag=null,moved=false;
@@ -81,27 +85,28 @@ async function mountViewMap(data){
   const svg=(tag,attrs={},text)=>{const el=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(text!==undefined)el.textContent=text;return el;};
   for(const o of tables.values()){const option=document.createElement('option');option.value=o.id;option.textContent=o.viewName.split('.')[1];focus.append(option);}
   const requested=new URLSearchParams(location.search).get('object')||new URLSearchParams(location.search).get('relation');
-  focus.value=tables.has(requested)?requested:'ETFHolding';
+  focus.value=tables.has(requested)?requested:relations.get(requested)?.physicalMapping.source||'ETFHolding';
   function subset(){
-    if(!focus.value)return model;
-    const r=relations.get(focus.value);
-    return r?{objects:model.objects.filter(o=>o.id===r.source||o.id===r.target),relations:[r]}:connectedModel(model,focus.value);
+    if(!focus.value)return {tables:[...tables.values()],references:data.references};
+    const refs=data.references.filter(r=>r.table===focus.value||r.target===focus.value);
+    const ids=new Set([focus.value,...refs.flatMap(r=>[r.table,r.target])]);
+    return {tables:[...tables.values()].filter(t=>ids.has(t.id)),references:refs};
   }
   async function tableLayout(part){
-    const children=[...part.objects,...part.relations].map(t=>({id:t.id,width:Math.max(410,Math.ceil(measure.measureText(t.viewName.split('.')[1]).width)+32),height:HEADER+t.columns.length*ROW+8,ports:[],layoutOptions:{'elk.portConstraints':'FIXED_POS'}}));
+    const children=part.tables.map(t=>({id:t.id,width:Math.max(410,Math.ceil(measure.measureText(t.viewName.split('.')[1]).width)+32),height:HEADER+t.columns.length*ROW+8,ports:[],layoutOptions:{'elk.portConstraints':'FIXED_POS'}}));
     const nodes=new Map(children.map(n=>[n.id,n]));
     const edges=[];
-    for(const r of part.relations)for(const [column,target] of [['source_id',r.source],['target_id',r.target]]){
-      const from=nodes.get(r.id),to=nodes.get(target),id=r.id+':'+column;
-      const row=r.columns.findIndex(c=>c.column===column),pk=objects.get(target).columns.findIndex(c=>c.identity);
+    for(const r of part.references){
+      const from=nodes.get(r.table),to=nodes.get(r.target),id=r.id;
+      const row=tables.get(r.table).columns.findIndex(c=>c.column===r.column),pk=tables.get(r.target).columns.findIndex(c=>c.column===r.targetColumn);
       if(row<0||pk<0)throw Error('참조 컬럼 또는 PK 없음: '+id);
       from.ports.push({id:id+':fk',x:from.width,y:HEADER+ROW*(row+.5),width:0,height:0,layoutOptions:{'elk.port.side':'EAST'}});
       to.ports.push({id:id+':pk',x:0,y:HEADER+ROW*(pk+.5),width:0,height:0,layoutOptions:{'elk.port.side':'WEST'}});
       edges.push({id,sources:[id+':fk'],targets:[id+':pk']});
     }
     const layerBound=Math.max(2,Math.round(Math.sqrt(children.length/1.4)));
-    const result=await engine.layout({id:'view-tables',children,edges,layoutOptions:{'elk.algorithm':'layered','elk.direction':'RIGHT','elk.layered.layering.strategy':'COFFMAN_GRAHAM','elk.layered.layering.coffmanGraham.layerBound':String(layerBound),'elk.edgeRouting':'ORTHOGONAL','elk.randomSeed':'7','elk.padding':'[top=30,left=30,bottom=30,right=30]','elk.spacing.nodeNode':'40','elk.spacing.edgeNode':'26','elk.spacing.edgeEdge':'16','elk.layered.spacing.nodeNodeBetweenLayers':'110','elk.layered.spacing.edgeNodeBetweenLayers':'30','elk.layered.spacing.edgeEdgeBetweenLayers':'18','elk.layered.mergeEdges':'false'}});
-    return {nodes:result.children,edges:result.edges.map(e=>{if(e.sections?.length!==1)throw Error('참조 경로 없음: '+e.id);const s=e.sections[0];return {id:e.id,relationId:e.id.slice(0,e.id.lastIndexOf(':')),column:e.id.slice(e.id.lastIndexOf(':')+1),points:[s.startPoint,...(s.bendPoints||[]),s.endPoint]};}),bounds:{width:result.width,height:result.height}};
+    const result=await engine.layout({id:'view-tables',children,edges,layoutOptions:{'elk.algorithm':'layered','elk.direction':'RIGHT','elk.layered.layering.strategy':'COFFMAN_GRAHAM','elk.layered.layering.coffmanGraham.layerBound':String(layerBound),'elk.edgeRouting':'ORTHOGONAL','elk.randomSeed':'7','elk.padding':'[top=30,left=30,bottom=30,right=30]','elk.spacing.nodeNode':'40','elk.spacing.edgeNode':'26','elk.spacing.edgeEdge':'16','elk.layered.spacing.nodeNodeBetweenLayers':part.tables.length<=4?'180':'110','elk.layered.spacing.edgeNodeBetweenLayers':'30','elk.layered.spacing.edgeEdgeBetweenLayers':'18','elk.layered.mergeEdges':'false'}});
+    return {nodes:result.children,edges:result.edges.map(e=>{if(e.sections?.length!==1)throw Error('참조 경로 없음: '+e.id);const s=e.sections[0];return {id:e.id,points:[s.startPoint,...(s.bendPoints||[]),s.endPoint]};}),bounds:{width:result.width,height:result.height}};
   }
   function transform(){scene.setAttribute('transform',`translate(${pan.x},${pan.y}) scale(${zoom})`);$('mapZoom').textContent=Math.round(zoom*100)+'%';}
   function fit(){if(!layout)return;zoom=Math.min(1,(area.clientWidth-60)/layout.bounds.width,(area.clientHeight-60)/layout.bounds.height);pan={x:(area.clientWidth-layout.bounds.width*zoom)/2,y:(area.clientHeight-layout.bounds.height*zoom)/2};transform();}
@@ -109,9 +114,9 @@ async function mountViewMap(data){
   function highlight(){
     const object=hasSelection&&state.kind==='objects'?state.selected:null,relation=hasSelection&&state.kind==='relations'?state.selected:null;
     const selectedRelation=relations.get(relation);
-    for(const el of scene.querySelectorAll('[data-map-table]'))el.classList.toggle('selected',el.dataset.mapTable===object||el.dataset.mapTable===relation||!!selectedRelation&&[selectedRelation.source,selectedRelation.target].includes(el.dataset.mapTable));
+    for(const el of scene.querySelectorAll('[data-map-table]'))el.classList.toggle('selected',el.dataset.mapTable===object||!!selectedRelation&&[selectedRelation.physicalMapping.source,selectedRelation.source,selectedRelation.target].includes(el.dataset.mapTable));
     for(const el of scene.querySelectorAll('[data-map-fk]')){
-      const r=relations.get(el.dataset.relationId),active=r.id===relation||!!object&&(r.source===object||r.target===object);
+      const r=references.get(el.dataset.mapFk),active=r.relationIds.includes(relation)||!!object&&(r.table===object||r.target===object);
       el.classList.toggle('active',active);el.classList.toggle('faded',!!(object||relation)&&!active);
     }
   }
@@ -127,25 +132,25 @@ async function mountViewMap(data){
   function render(){
     scene.replaceChildren();
     for(const route of layout.edges){
-      const r=relations.get(route.relationId),target=objects.get(route.column==='source_id'?r.source:r.target);
-      const g=svg('g',{'data-map-fk':route.id,'data-relation-id':r.id,class:'map-edge'+(r.readiness==='blocked'?' blocked':''),tabindex:0,role:'button','aria-label':r.viewName+'.'+route.column+' → '+target.viewName+'.id'});
-      g.append(svg('title',{},r.viewName+'.'+route.column+' → '+target.viewName+'.id\n설계 FK → PK'));
+      const r=references.get(route.id),source=tables.get(r.table),target=tables.get(r.target);
+      const g=svg('g',{'data-map-fk':route.id,'data-relation-id':r.relationIds[0],class:'map-edge',tabindex:0,role:'button','aria-label':source.viewName+'.'+r.column+' → '+target.viewName+'.id'});
+      g.append(svg('title',{},source.viewName+'.'+r.column+' → '+target.viewName+'.id\n'+r.relationIds.join('\n')));
       g.append(svg('path',{d:edgePath(route.points),class:'map-edge-halo'}),svg('path',{d:edgePath(route.points),class:'map-edge-line','marker-end':'url(#mapArrow)'}),svg('path',{d:edgePath(route.points),class:'map-edge-hit'}));
-      activate(g,()=>choose('relations',r.id));scene.append(g);
+      activate(g,()=>choose('relations',r.relationIds[0]));scene.append(g);
     }
     for(const b of layout.nodes){
-      const o=tables.get(b.id),isRelation=relations.has(o.id),blocked=o.readiness==='blocked';
+      const o=tables.get(b.id),isRelation=o.kind!=='object_view',blocked=false;
       const g=svg('g',{'data-map-table':o.id,[isRelation?'data-map-relation':'data-map-object']:o.id,class:'map-card'+(isRelation?' relation-table':'')+(blocked?' blocked-table':''),transform:`translate(${b.x},${b.y})`,tabindex:0,role:'button','aria-label':o.viewName});
-      g.append(svg('title',{},o.viewName+'\n'+o.grain),svg('rect',{width:b.width,height:b.height,rx:7,class:'map-card-bg'}),svg('text',{x:14,y:20,class:'map-card-meta'},(isRelation?'RELATION VIEW':'OBJECT VIEW')+(blocked?' · 구현 보류':'')),svg('text',{x:14,y:43,class:'map-card-title'},o.viewName.split('.')[1]),svg('text',{x:14,y:63,class:'map-card-meta'},isRelation?o.source+' → '+o.target+' · '+o.cardinality:'원본 키: '+o.identity.columns.join(' + ')));
+      g.append(svg('title',{},o.viewName+'\n'+o.grain),svg('rect',{width:b.width,height:b.height,rx:7,class:'map-card-bg'}),svg('text',{x:14,y:20,class:'map-card-meta'},({object_view:'OBJECT VIEW',connection_view:'SHARED CONNECTION VIEW',existing_table:'EXISTING TABLE'})[o.kind]),svg('text',{x:14,y:43,class:'map-card-title'},o.viewName.split('.')[1]),svg('text',{x:14,y:63,class:'map-card-meta'},'식별 키: '+o.primaryKey.join(' + ')));
       g.append(svg('text',{x:14,y:83,class:'map-card-meta'},'KEY'),svg('text',{x:57,y:83,class:'map-card-meta'},'COLUMN'),svg('text',{x:b.width-148,y:83,class:'map-card-meta'},'TYPE'),svg('text',{x:b.width-40,y:83,class:'map-card-meta'},'NULL'));
       o.columns.forEach((c,i)=>{
-        const y=HEADER+i*ROW,pk=isRelation?c.column==='edge_id':!!c.identity,fk=isRelation&&['source_id','target_id'].includes(c.column);
-        const row=svg('g',{'data-erd-column':c.column,'data-key':pk?'PK':fk?'FK':'',class:'erd-row'+(pk?' pk-row':fk?' fk-row':'')});
-        row.append(svg('rect',{x:1,y,width:b.width-2,height:ROW,class:'erd-row-bg'}),svg('line',{x1:1,y1:y,x2:b.width-1,y2:y,class:'erd-row-rule'}),svg('text',{x:14,y:y+18,class:pk?'erd-pk':fk?'erd-fk':'erd-key'},pk?'PK':fk?'FK':''),svg('text',{x:57,y:y+18,class:'erd-column'},c.column),svg('text',{x:b.width-148,y:y+18,class:'erd-type'},c.type),svg('text',{x:b.width-30,y:y+18,class:'erd-null'},c.viewNullable?'Y':'N'));
-        row.append(svg('title',{},c.description+(fk?'\n→ '+objects.get(c.column==='source_id'?o.source:o.target).viewName+'.id':'')));
+        const y=HEADER+i*ROW,pk=c.keyRoles.includes('PK'),fk=c.keyRoles.includes('FK'),key=c.keyRoles.join('/');
+        const row=svg('g',{'data-erd-column':c.column,'data-key':key,class:'erd-row'+(pk?' pk-row':fk?' fk-row':'')});
+        row.append(svg('rect',{x:1,y,width:b.width-2,height:ROW,class:'erd-row-bg'}),svg('line',{x1:1,y1:y,x2:b.width-1,y2:y,class:'erd-row-rule'}),svg('text',{x:8,y:y+18,class:pk?'erd-pk':fk?'erd-fk':'erd-key'},key),svg('text',{x:57,y:y+18,class:'erd-column'},c.column),svg('text',{x:b.width-148,y:y+18,class:'erd-type'},c.type),svg('text',{x:b.width-30,y:y+18,class:'erd-null'},c.viewNullable?'Y':'N'));
+        row.append(svg('title',{},c.description+c.references.map(r=>'\n→ '+tables.get(r.target).viewName+'.id').join('')));
         g.append(row);
       });
-      activate(g,()=>choose(isRelation?'relations':'objects',o.id));g.ondblclick=()=>{focus.value=o.id;arrange();};scene.append(g);
+      activate(g,()=>choose(isRelation?'relations':'objects',isRelation?model.relations.find(r=>r.physicalMapping.source===o.id).id:o.id));g.ondblclick=()=>{focus.value=o.id;arrange();};scene.append(g);
       for(const text of g.querySelectorAll('.erd-column'))if(text.getComputedTextLength()>b.width-218){text.setAttribute('textLength',b.width-218);text.setAttribute('lengthAdjust','spacingAndGlyphs');}
       const key=g.querySelectorAll('.map-card-meta')[1];if(key.getComputedTextLength()>b.width-28){key.setAttribute('textLength',b.width-28);key.setAttribute('lengthAdjust','spacingAndGlyphs');}
     }
@@ -157,7 +162,7 @@ async function mountViewMap(data){
     try{
       const result=await tableLayout(part);
       if(ticket!==version)return;layout=result;render();
-      $('mapStatus').textContent=(focus.value?focus.value+' 직접 연결':'전체 구조')+' · '+part.objects.length+'개 객체 테이블 · '+part.relations.length+'개 관계 테이블 · '+result.edges.length+'개 FK 참조';
+      $('mapStatus').textContent=(focus.value?focus.value+' 직접 연결':'전체 구조')+' · '+part.tables.length+'개 물리 원본 · '+result.edges.length+'개 FK 참조 · 보류 링크는 물리 테이블로 표시하지 않음';
     }catch(error){if(ticket!==version)return;layout=null;scene.replaceChildren();$('mapStatus').textContent='관계도 배치 실패: '+error.message;}
     finally{if(ticket===version)area.setAttribute('aria-busy','false');}
   }

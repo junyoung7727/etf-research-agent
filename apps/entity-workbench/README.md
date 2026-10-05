@@ -23,7 +23,7 @@ entity-workbench/
 
 ## SQL 뷰 설계
 
-주소: http://127.0.0.1:5186/view-design — `/modeler`의 **SQL 뷰 설계** 링크와 객체 상세에서 이동한다. 객체 뷰 23개와 관계 뷰 37개의 행 단위·ID·컬럼·원본 조인·미결 사항을 조회한다. 실제 DB 뷰 생성과 PuppyGraph 연결은 수행하지 않는다. 설계 원본과 검증 범위는 [뷰 설계 문서](docs/view-design.md)에 있다.
+주소: http://127.0.0.1:5186/view-design — `/modeler`의 **SQL 뷰 설계** 링크와 객체 상세에서 이동한다. 객체 뷰 23개와 논리 링크 37개의 대응을 조회한다. ERD는 객체 뷰 23개·공용 연결 뷰 3개·재사용하는 기존 테이블 1개를 표시한다. 링크마다 별도 뷰를 만들지 않는다. 설계 원본과 검증 범위는 [뷰 설계 문서](docs/view-design.md), 실제 구현 진행은 [작업 체크리스트](../../tasks/ontology-views-puppygraph/todo.md)를 따른다.
 
 ## Value Types · 값과 스레드 조건 관리
 

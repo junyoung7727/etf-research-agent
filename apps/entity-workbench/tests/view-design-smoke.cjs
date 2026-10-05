@@ -8,7 +8,7 @@ const fs=require('node:fs');
  try{
   await page.goto('http://127.0.0.1:5186/view-design');
   await page.waitForSelector('#columnTable');
-  assert((await page.locator('#summary').innerText()).includes('23개 객체 뷰 · 37개 관계 뷰'));
+  assert((await page.locator('#summary').innerText()).includes('23개 객체 뷰 · 37개 논리 링크'));
   assert(await page.locator('#stale').isHidden());
   await page.locator('[data-id="Company"]').click();
   assert.equal(await page.locator('#viewName').innerText(),'ontology_view.company');
@@ -19,6 +19,8 @@ const fs=require('node:fs');
   await page.screenshot({path:'output/view-design-20261005/market-cap-design.png',fullPage:true});
   await page.locator('#relationsTab').click();
   await page.locator('[data-id="Company_ParticipatesIn_SourceEvent"]').click();
+  assert((await page.locator('#detail').innerText()).includes('participation_id'));
+  await page.getByText('관계 원본·필터·판본 선택 계약', {exact:true}).click();
   assert((await page.locator('#detail').innerText()).includes('event_argument_id'));
   assert.equal(await page.locator('[data-column="role_code"]').count(),1);
   await page.locator('[data-id="FinancialMetric_CalculatedFrom_FinancialMetric"]').click();
