@@ -16,6 +16,7 @@
 - AWS의 dev RDS와 PuppyGraph pilot, SSM 원격 포트 포워딩이 필요하다. 현재 검증 도우미는 프로젝트의 work 프로필과 ap-northeast-2 dev 환경을 사용한다.
 - DB 인증은 Secrets Manager 또는 SSM SecureString에서 읽는다. 저장된 결과·그래프 JSON에는 비밀번호가 없어야 한다.
 - `EDGE_ONTOLOGY_ROOT`를 실제 라이브러리의 `src/libs/ontology/src/edge_ontology` 경로로 지정한다. 로컬 `data/library.json`은 환경 설정으로만 사용하며 PR에 포함하지 않는다.
+- 기존 스냅샷 기반 테스트 15개는 `output/entity-workbench/snapshot.sqlite3`이 필요하며 그중 이전 결과 보존 검사는 같은 폴더의 `object-model-stages-1-4.json`도 사용한다. 빈 체크아웃에서는 이 파일들의 부재로 실패한다. 검증된 로컬 스냅샷의 SQLite 읽기 전용 백업과 해당 기준 모델 파일을 시험 체크아웃에 준비한 후 실행한다. 시험 데이터는 Git에 추가하지 않는다. 새 매핑·뷰 설계 테스트는 이 스냅샷에 의존하지 않는다.
 - 실행 상태 파일은 `output/ontology-views-puppygraph-20261005/puppy-task.json`이다. cluster, task, credentialParameter 등 현재 시험 리소스 식별자를 담는다. 서비스가 재생성되면 이 파일의 task를 갱신해야 한다.
 
 ## 검사 순서
