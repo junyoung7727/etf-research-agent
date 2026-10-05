@@ -1,4 +1,11 @@
 CREATE OR REPLACE VIEW ontology_view.reported_business_segment AS
+-- Display context is additive; source identities, values and row scope are unchanged.
+SELECT record.*,
+       (company_e.display_name)::text AS company_name,
+       (document.title)::text AS document_title,
+       (concept_e.display_name)::text AS concept_name,
+       (concat_ws(' / ', COALESCE(NULLIF(company_e.display_name,''),disclosure.issuer_actor_id,'Unknown company'), record.segment_name, record.reported_period_text, document.title))::text AS display_title
+FROM (
 SELECT mapped.*,
        mapped.revenue_krw::text AS revenue_krw_decimal_text,
        mapped.revenue_total_krw::text AS revenue_total_krw_decimal_text
@@ -19,4 +26,9 @@ SELECT (base.fact_id::text)::text AS id,
        (NULL)::text AS revenue_total_scope
 FROM public.business_segment_fact AS base
 LEFT JOIN public.disclosure_fact AS fact ON base.fact_id = fact.fact_id AND base.fact_type = fact.fact_type
-) AS mapped;
+) AS mapped
+) AS record
+LEFT JOIN public.disclosure_document disclosure ON disclosure.document_id=record.document_id
+LEFT JOIN public.entity company_e ON company_e.entity_id=disclosure.issuer_actor_id
+LEFT JOIN public.document document ON document.document_id=disclosure.document_id AND document.document_type=disclosure.document_type
+LEFT JOIN public.entity concept_e ON concept_e.entity_id=record.concept_id;

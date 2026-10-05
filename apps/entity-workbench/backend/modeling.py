@@ -182,5 +182,6 @@ def preview_object(path,model,object_id,search=''):
                     lookup=p['lookup'];mapped[p['id']]=lookup['values'].get(str(mapped[p['id']]),lookup.get('default'))
             rows.append({'values':mapped,'sources':provenance})
         return {'rows':rows,'truncated':len(raw)>20,'stats':{'base_rows':base,'joined_rows':total,'null_ids':nulls,'duplicate_ids':duplicates,'missing_joins':missing},
+                'viewOnlyProperties':obj.get('preview',{}).get('viewOnlyProperties',[]),
                 'sources':sources,'partial_tables':[t for t in set(sources.values()) if not meta['tables'].get(t,{}).get('complete',False)],
                 'scope':'통계는 검색 전 전체 스냅샷 기준 · 미리보기 최대 20행 · 중복 제거 없음'}

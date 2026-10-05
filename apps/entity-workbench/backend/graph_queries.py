@@ -22,6 +22,7 @@ def interface_traversal(interface, link_name, typed_ids, catalog, link_filters=N
             raise ValueError('Each ID requires a known concrete type and nonempty string id')
         if item['id'] not in selected[item['type']]:selected[item['type']].append(item['id'])
     links={r['id']:r for r in catalog['relations']}
+    objects={o['id']:o for o in catalog['objects']}
     mappings=[links[i['links'][link_name]['linkType']]['physicalMapping']
               for i in implementations.values() if link_name in i['links']]
     property_names=sorted({p for m in mappings for p in m.get('properties',{})})
@@ -47,9 +48,11 @@ def interface_traversal(interface, link_name, typed_ids, catalog, link_filters=N
         props=[('a.'+name(impl['properties'][p]))+' AS '+name('object_'+p) for p in interface['properties'] if p!='id']
         edge_props=[('r.'+name(p) if p in m['properties'] else 'NULL')+' AS '+name('link_'+p) for p in property_names]
         edge_keys=[('r.'+name(f'key_{i}') if i<len(m['edgeIdColumns']) else 'NULL')+' AS '+name(f'linkKey{i}') for i in range(key_count)]
+        # Resolve names in the same traversal; an agent need not look up each returned ID.
+        target_title='z.'+name(objects[target]['titleProperty'])+' AS targetTitle'
         branches.append('MATCH '+pattern+' WHERE '+' AND '.join(conditions)+
             " RETURN '"+object_type+"' AS objectType, a."+name(impl['properties']['id'])+
             " AS objectId, '"+target+"' AS targetType, z.id AS targetId, '"+link['id']+
-            "' AS linkType, "+', '.join(props+edge_keys+edge_props))
+            "' AS linkType, "+', '.join([target_title]+props+edge_keys+edge_props))
     if not branches:raise ValueError('No concrete link mappings')
     return ' UNION ALL '.join(branches),params

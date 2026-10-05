@@ -73,8 +73,9 @@ async function render(){
   group.append(svg('title',{},n.label+'\n'+n.type+'\n'+n.id),svg('circle',{r:r+6,class:'node-halo'}),svg('circle',{r,fill:color,class:'node-circle'}));
   const center=n.type==='ETFHolding'?(n.properties.weightRatio===null?'?':new Intl.NumberFormat('ko-KR',{style:'percent',maximumFractionDigits:1}).format(n.properties.weightRatio)):titles[n.type]||n.type;
   group.append(svg('text',{'text-anchor':'middle',y:4,class:'node-center'},center.length>9?center.slice(0,8):center));
-  const label=n.type==='ETFHolding'?(n.properties.tradeDate||n.label):n.label;
-  group.append(svg('text',{'text-anchor':'middle',y:r+23,class:'node-title'},label.length>17?label.slice(0,16)+'…':label));
+  const label=n.type==='ETFHolding'?(n.properties.securityName||n.label):n.label;
+  group.append(svg('text',{'text-anchor':'middle',y:r+23,class:'node-title'},label.length>28?label.slice(0,27)+'…':label));
+  if(n.type==='ETFHolding')group.append(svg('text',{'text-anchor':'middle',y:r+39,class:'node-title'},[n.properties.securityTicker,n.properties.tradeDate].filter(Boolean).join(' · ')));
   group.onclick=()=>{if(!suppressClick)selectNode(n.key);};
   group.ondblclick=()=>{if(!state.busy){selectNode(n.key);focus();}};
   group.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();selectNode(n.key);if(event.shiftKey)focus();}};

@@ -1,0 +1,3231 @@
+{
+  "formatVersion": 1,
+  "objects": {
+    "ETFHolding": {
+      "baseHash": "ff09068b44bfbfc4509b43ca01767e7982ddd6f823bf8ccd58c5dba64bd69114",
+      "baseSemanticHash": "af072be175fc0fbe8c14fdbc6b49d58836126404970d148bd1a63e542ea17923",
+      "previousTitleProperty": "id",
+      "titleProperty": "displayTitle",
+      "properties": {
+        "etfName": {
+          "label": "Etf name",
+          "description": "Current stored name of the etf identified by etf_instrument_id; not its historical name on the record date.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "etfName",
+          "displayName": "Etf name",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "etfTicker": {
+          "label": "Etf ticker",
+          "description": "Current ticker of the etf; leading zeros are preserved.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "etfTicker",
+          "displayName": "Etf ticker",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "etfMarketCode": {
+          "label": "Etf market code",
+          "description": "Current market code of the etf, used with its ticker for display.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "etfMarketCode",
+          "displayName": "Etf market code",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "securityName": {
+          "label": "Security name",
+          "description": "Current stored name of the security identified by constituent_instrument_id; not its historical name on the record date.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityName",
+          "displayName": "Security name",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "securityTicker": {
+          "label": "Security ticker",
+          "description": "Current ticker of the security; leading zeros are preserved.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityTicker",
+          "displayName": "Security ticker",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "securityMarketCode": {
+          "label": "Security market code",
+          "description": "Current market code of the security, used with its ticker for display.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityMarketCode",
+          "displayName": "Security market code",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "displayTitle": {
+          "label": "Display title",
+          "description": "Readable title assembled from stored names and the record context. IDs remain authoritative; labels may change and are not unique.",
+          "sourceDataType": "text",
+          "nullable": false,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "displayTitle",
+          "displayName": "Display title",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "etfName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "etf_holding",
+          "column": "etf_name",
+          "sqlFile": "sql/views/etf_holding.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "constituent_instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "etf_instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "trade_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            }
+          ]
+        },
+        "etfTicker": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "etf_holding",
+          "column": "etf_ticker",
+          "sqlFile": "sql/views/etf_holding.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "constituent_instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "etf_instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "trade_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            }
+          ]
+        },
+        "etfMarketCode": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "etf_holding",
+          "column": "etf_market_code",
+          "sqlFile": "sql/views/etf_holding.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "constituent_instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "etf_instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "trade_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            }
+          ]
+        },
+        "securityName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "etf_holding",
+          "column": "security_name",
+          "sqlFile": "sql/views/etf_holding.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "constituent_instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "etf_instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "trade_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            }
+          ]
+        },
+        "securityTicker": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "etf_holding",
+          "column": "security_ticker",
+          "sqlFile": "sql/views/etf_holding.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "constituent_instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "etf_instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "trade_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            }
+          ]
+        },
+        "securityMarketCode": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "etf_holding",
+          "column": "security_market_code",
+          "sqlFile": "sql/views/etf_holding.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "constituent_instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "etf_instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "trade_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            }
+          ]
+        },
+        "displayTitle": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "etf_holding",
+          "column": "display_title",
+          "sqlFile": "sql/views/etf_holding.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "constituent_instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "etf_instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "etf_holding_snapshot",
+              "column": "trade_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            }
+          ]
+        }
+      }
+    },
+    "DailyBar": {
+      "baseHash": "abbdadb7f7b9c8a1b43c0efba5f43eac89393d98e5bd2dc36fc2f6a6824e3081",
+      "baseSemanticHash": "9be3ce1f7eb160b89cc7dd886016bf974ec3a4859d225bbbb2500e0ee6e73dc2",
+      "previousTitleProperty": "id",
+      "titleProperty": "displayTitle",
+      "properties": {
+        "securityName": {
+          "label": "Security name",
+          "description": "Current stored name of the security identified by instrument_id; not its historical name on the record date.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityName",
+          "displayName": "Security name",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "securityTicker": {
+          "label": "Security ticker",
+          "description": "Current ticker of the security; leading zeros are preserved.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityTicker",
+          "displayName": "Security ticker",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "securityMarketCode": {
+          "label": "Security market code",
+          "description": "Current market code of the security, used with its ticker for display.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityMarketCode",
+          "displayName": "Security market code",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "displayTitle": {
+          "label": "Display title",
+          "description": "Readable title assembled from stored names and the record context. IDs remain authoritative; labels may change and are not unique.",
+          "sourceDataType": "text",
+          "nullable": false,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "displayTitle",
+          "displayName": "Display title",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "securityName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "daily_bar",
+          "column": "security_name",
+          "sqlFile": "sql/views/daily_bar.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "price_daily",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "price_daily",
+              "column": "trade_date"
+            }
+          ]
+        },
+        "securityTicker": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "daily_bar",
+          "column": "security_ticker",
+          "sqlFile": "sql/views/daily_bar.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "price_daily",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "price_daily",
+              "column": "trade_date"
+            }
+          ]
+        },
+        "securityMarketCode": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "daily_bar",
+          "column": "security_market_code",
+          "sqlFile": "sql/views/daily_bar.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "price_daily",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "price_daily",
+              "column": "trade_date"
+            }
+          ]
+        },
+        "displayTitle": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "daily_bar",
+          "column": "display_title",
+          "sqlFile": "sql/views/daily_bar.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "price_daily",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "price_daily",
+              "column": "trade_date"
+            }
+          ]
+        }
+      }
+    },
+    "DailyInvestorFlow": {
+      "baseHash": "831266abf098ecd52a2ef7e097b34c67a999d452048976fd01f8c2eee912bd38",
+      "baseSemanticHash": "c31e3cdba0f8d0694f3d13a2b3cf763b2271212648d3e8c795f315c883916953",
+      "previousTitleProperty": "id",
+      "titleProperty": "displayTitle",
+      "properties": {
+        "securityName": {
+          "label": "Security name",
+          "description": "Current stored name of the security identified by instrument_id; not its historical name on the record date.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityName",
+          "displayName": "Security name",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "securityTicker": {
+          "label": "Security ticker",
+          "description": "Current ticker of the security; leading zeros are preserved.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityTicker",
+          "displayName": "Security ticker",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "securityMarketCode": {
+          "label": "Security market code",
+          "description": "Current market code of the security, used with its ticker for display.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityMarketCode",
+          "displayName": "Security market code",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "displayTitle": {
+          "label": "Display title",
+          "description": "Readable title assembled from stored names and the record context. IDs remain authoritative; labels may change and are not unique.",
+          "sourceDataType": "text",
+          "nullable": false,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "displayTitle",
+          "displayName": "Display title",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "securityName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "daily_investor_flow",
+          "column": "security_name",
+          "sqlFile": "sql/views/daily_investor_flow.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_daily",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_daily",
+              "column": "trade_date"
+            }
+          ]
+        },
+        "securityTicker": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "daily_investor_flow",
+          "column": "security_ticker",
+          "sqlFile": "sql/views/daily_investor_flow.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_daily",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_daily",
+              "column": "trade_date"
+            }
+          ]
+        },
+        "securityMarketCode": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "daily_investor_flow",
+          "column": "security_market_code",
+          "sqlFile": "sql/views/daily_investor_flow.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_daily",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_daily",
+              "column": "trade_date"
+            }
+          ]
+        },
+        "displayTitle": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "daily_investor_flow",
+          "column": "display_title",
+          "sqlFile": "sql/views/daily_investor_flow.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_daily",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_daily",
+              "column": "trade_date"
+            }
+          ]
+        }
+      }
+    },
+    "IntradayInvestorFlow": {
+      "baseHash": "7278891655e6ea258db97d2c879db37e36ce31275404a805a5650c5c003a0b7c",
+      "baseSemanticHash": "f27b8394e32807a6d887711a90f55b9b9ef46e5acd11b007bd858b71c8aee9f1",
+      "previousTitleProperty": "id",
+      "titleProperty": "displayTitle",
+      "properties": {
+        "securityName": {
+          "label": "Security name",
+          "description": "Current stored name of the security identified by instrument_id; not its historical name on the record date.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityName",
+          "displayName": "Security name",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "securityTicker": {
+          "label": "Security ticker",
+          "description": "Current ticker of the security; leading zeros are preserved.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityTicker",
+          "displayName": "Security ticker",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "securityMarketCode": {
+          "label": "Security market code",
+          "description": "Current market code of the security, used with its ticker for display.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityMarketCode",
+          "displayName": "Security market code",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "displayTitle": {
+          "label": "Display title",
+          "description": "Readable title assembled from stored names and the record context. IDs remain authoritative; labels may change and are not unique.",
+          "sourceDataType": "text",
+          "nullable": false,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "displayTitle",
+          "displayName": "Display title",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "securityName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "intraday_investor_flow",
+          "column": "security_name",
+          "sqlFile": "sql/views/intraday_investor_flow.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_intraday",
+              "column": "asof_slot"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_intraday",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_intraday",
+              "column": "trade_date"
+            }
+          ]
+        },
+        "securityTicker": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "intraday_investor_flow",
+          "column": "security_ticker",
+          "sqlFile": "sql/views/intraday_investor_flow.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_intraday",
+              "column": "asof_slot"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_intraday",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_intraday",
+              "column": "trade_date"
+            }
+          ]
+        },
+        "securityMarketCode": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "intraday_investor_flow",
+          "column": "security_market_code",
+          "sqlFile": "sql/views/intraday_investor_flow.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_intraday",
+              "column": "asof_slot"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_intraday",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_intraday",
+              "column": "trade_date"
+            }
+          ]
+        },
+        "displayTitle": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "intraday_investor_flow",
+          "column": "display_title",
+          "sqlFile": "sql/views/intraday_investor_flow.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_intraday",
+              "column": "asof_slot"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_intraday",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "investor_flow_intraday",
+              "column": "trade_date"
+            }
+          ]
+        }
+      }
+    },
+    "MarketCapitalization": {
+      "baseHash": "7baca173999fe9615e47eafd2a84764bbfdba79a2822a8070a696c2fcef37d13",
+      "baseSemanticHash": "1f4c0908961374cde281fca2c82b9bdc201af5c17505b2eca479e6e13b2b355d",
+      "previousTitleProperty": "id",
+      "titleProperty": "displayTitle",
+      "properties": {
+        "securityName": {
+          "label": "Security name",
+          "description": "Current stored name of the security identified by instrument_id; not its historical name on the record date.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityName",
+          "displayName": "Security name",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "securityTicker": {
+          "label": "Security ticker",
+          "description": "Current ticker of the security; leading zeros are preserved.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityTicker",
+          "displayName": "Security ticker",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "securityMarketCode": {
+          "label": "Security market code",
+          "description": "Current market code of the security, used with its ticker for display.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityMarketCode",
+          "displayName": "Security market code",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "displayTitle": {
+          "label": "Display title",
+          "description": "Readable title assembled from stored names and the record context. IDs remain authoritative; labels may change and are not unique.",
+          "sourceDataType": "text",
+          "nullable": false,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "displayTitle",
+          "displayName": "Display title",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "securityName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "market_capitalization",
+          "column": "security_name",
+          "sqlFile": "sql/views/market_capitalization.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "as_of_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "instrument_id"
+            }
+          ]
+        },
+        "securityTicker": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "market_capitalization",
+          "column": "security_ticker",
+          "sqlFile": "sql/views/market_capitalization.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "as_of_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "instrument_id"
+            }
+          ]
+        },
+        "securityMarketCode": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "market_capitalization",
+          "column": "security_market_code",
+          "sqlFile": "sql/views/market_capitalization.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "as_of_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "instrument_id"
+            }
+          ]
+        },
+        "displayTitle": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "market_capitalization",
+          "column": "display_title",
+          "sqlFile": "sql/views/market_capitalization.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "as_of_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "instrument_id"
+            }
+          ]
+        }
+      }
+    },
+    "SecurityIndustryClassification": {
+      "baseHash": "b905fb66454a35955c398226a8c69a9b958f4766b4f0f952ea04f3594be2a7f8",
+      "baseSemanticHash": "0880dc2a9475bc71569dc6271c246f2e505b527dafebbd8da2762fe5314779a6",
+      "previousTitleProperty": "id",
+      "titleProperty": "displayTitle",
+      "properties": {
+        "securityName": {
+          "label": "Security name",
+          "description": "Current stored name of the security identified by instrument_id; not its historical name on the record date.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityName",
+          "displayName": "Security name",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "securityTicker": {
+          "label": "Security ticker",
+          "description": "Current ticker of the security; leading zeros are preserved.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityTicker",
+          "displayName": "Security ticker",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "securityMarketCode": {
+          "label": "Security market code",
+          "description": "Current market code of the security, used with its ticker for display.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityMarketCode",
+          "displayName": "Security market code",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "displayTitle": {
+          "label": "Display title",
+          "description": "Readable title assembled from stored names and the record context. IDs remain authoritative; labels may change and are not unique.",
+          "sourceDataType": "text",
+          "nullable": false,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "displayTitle",
+          "displayName": "Display title",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "securityName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "security_industry_classification",
+          "column": "security_name",
+          "sqlFile": "sql/views/security_industry_classification.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "as_of_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "instrument_id"
+            }
+          ]
+        },
+        "securityTicker": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "security_industry_classification",
+          "column": "security_ticker",
+          "sqlFile": "sql/views/security_industry_classification.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "as_of_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "instrument_id"
+            }
+          ]
+        },
+        "securityMarketCode": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "security_industry_classification",
+          "column": "security_market_code",
+          "sqlFile": "sql/views/security_industry_classification.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "as_of_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "instrument_id"
+            }
+          ]
+        },
+        "displayTitle": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "security_industry_classification",
+          "column": "display_title",
+          "sqlFile": "sql/views/security_industry_classification.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "as_of_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "instrument_id"
+            }
+          ]
+        }
+      }
+    },
+    "SecurityListingSnapshot": {
+      "baseHash": "cfbea0e4786dcd5c7261687358ae7e119fbd555154cc08e50d37c900573e947f",
+      "baseSemanticHash": "7a259c90858ca93dd5fa55584e3b7d4eb1ae597ace2221a5e829f854414d286a",
+      "previousTitleProperty": "id",
+      "titleProperty": "displayTitle",
+      "properties": {
+        "securityName": {
+          "label": "Security name",
+          "description": "Current stored name of the security identified by instrument_id; not its historical name on the record date.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityName",
+          "displayName": "Security name",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "securityTicker": {
+          "label": "Security ticker",
+          "description": "Current ticker of the security; leading zeros are preserved.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityTicker",
+          "displayName": "Security ticker",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "securityMarketCode": {
+          "label": "Security market code",
+          "description": "Current market code of the security, used with its ticker for display.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityMarketCode",
+          "displayName": "Security market code",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "displayTitle": {
+          "label": "Display title",
+          "description": "Readable title assembled from stored names and the record context. IDs remain authoritative; labels may change and are not unique.",
+          "sourceDataType": "text",
+          "nullable": false,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "displayTitle",
+          "displayName": "Display title",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "securityName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "security_listing_snapshot",
+          "column": "security_name",
+          "sqlFile": "sql/views/security_listing_snapshot.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "as_of_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "instrument_id"
+            }
+          ]
+        },
+        "securityTicker": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "security_listing_snapshot",
+          "column": "security_ticker",
+          "sqlFile": "sql/views/security_listing_snapshot.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "as_of_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "instrument_id"
+            }
+          ]
+        },
+        "securityMarketCode": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "security_listing_snapshot",
+          "column": "security_market_code",
+          "sqlFile": "sql/views/security_listing_snapshot.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "as_of_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "instrument_id"
+            }
+          ]
+        },
+        "displayTitle": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "security_listing_snapshot",
+          "column": "display_title",
+          "sqlFile": "sql/views/security_listing_snapshot.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "as_of_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument_classification",
+              "column": "instrument_id"
+            }
+          ]
+        }
+      }
+    },
+    "ExchangeSecurityClassification": {
+      "baseHash": "fe1508d2262f54e4325f81c811f835027234d388745041d8c49c25e5f1184768",
+      "baseSemanticHash": "e2d601686891a099a3450cc1a9b5f9a17dc61a043d66b7e5c788544f7a61d983",
+      "previousTitleProperty": "nameKr",
+      "titleProperty": "displayTitle",
+      "properties": {
+        "securityName": {
+          "label": "Security name",
+          "description": "Current stored name of the security identified by security_id; not its historical name on the record date.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityName",
+          "displayName": "Security name",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "securityTicker": {
+          "label": "Security ticker",
+          "description": "Current ticker of the security; leading zeros are preserved.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityTicker",
+          "displayName": "Security ticker",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "securityMarketCode": {
+          "label": "Security market code",
+          "description": "Current market code of the security, used with its ticker for display.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "securityMarketCode",
+          "displayName": "Security market code",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "displayTitle": {
+          "label": "Display title",
+          "description": "Readable title assembled from stored names and the record context. IDs remain authoritative; labels may change and are not unique.",
+          "sourceDataType": "text",
+          "nullable": false,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "displayTitle",
+          "displayName": "Display title",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "securityName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "exchange_security_classification",
+          "column": "security_name",
+          "sqlFile": "sql/views/exchange_security_classification.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "sector_classification",
+              "column": "as_of_date"
+            },
+            {
+              "schema": "public",
+              "table": "sector_classification",
+              "column": "instrument_code"
+            },
+            {
+              "schema": "public",
+              "table": "sector_classification",
+              "column": "market"
+            },
+            {
+              "schema": "public",
+              "table": "sector_classification",
+              "column": "raw_run_id"
+            }
+          ]
+        },
+        "securityTicker": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "exchange_security_classification",
+          "column": "security_ticker",
+          "sqlFile": "sql/views/exchange_security_classification.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "sector_classification",
+              "column": "as_of_date"
+            },
+            {
+              "schema": "public",
+              "table": "sector_classification",
+              "column": "instrument_code"
+            },
+            {
+              "schema": "public",
+              "table": "sector_classification",
+              "column": "market"
+            },
+            {
+              "schema": "public",
+              "table": "sector_classification",
+              "column": "raw_run_id"
+            }
+          ]
+        },
+        "securityMarketCode": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "exchange_security_classification",
+          "column": "security_market_code",
+          "sqlFile": "sql/views/exchange_security_classification.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "sector_classification",
+              "column": "as_of_date"
+            },
+            {
+              "schema": "public",
+              "table": "sector_classification",
+              "column": "instrument_code"
+            },
+            {
+              "schema": "public",
+              "table": "sector_classification",
+              "column": "market"
+            },
+            {
+              "schema": "public",
+              "table": "sector_classification",
+              "column": "raw_run_id"
+            }
+          ]
+        },
+        "displayTitle": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "exchange_security_classification",
+          "column": "display_title",
+          "sqlFile": "sql/views/exchange_security_classification.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            },
+            {
+              "schema": "public",
+              "table": "sector_classification",
+              "column": "as_of_date"
+            },
+            {
+              "schema": "public",
+              "table": "sector_classification",
+              "column": "instrument_code"
+            },
+            {
+              "schema": "public",
+              "table": "sector_classification",
+              "column": "market"
+            },
+            {
+              "schema": "public",
+              "table": "sector_classification",
+              "column": "raw_run_id"
+            }
+          ]
+        }
+      }
+    },
+    "DailyNAV": {
+      "baseHash": "ca87edbb4db64fb6f080dee624efc57d6367a975de72a9c8ca148e5a3da9fffb",
+      "baseSemanticHash": "a8620624801eb3ce6ea70851d97bc0c52662da6c3a2217fa0045ce6fbdd2568f",
+      "previousTitleProperty": "id",
+      "titleProperty": "displayTitle",
+      "properties": {
+        "etfName": {
+          "label": "Etf name",
+          "description": "Current stored name of the etf identified by etf_instrument_id; not its historical name on the record date.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "etfName",
+          "displayName": "Etf name",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "etfTicker": {
+          "label": "Etf ticker",
+          "description": "Current ticker of the etf; leading zeros are preserved.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "etfTicker",
+          "displayName": "Etf ticker",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "etfMarketCode": {
+          "label": "Etf market code",
+          "description": "Current market code of the etf, used with its ticker for display.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "etfMarketCode",
+          "displayName": "Etf market code",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "displayTitle": {
+          "label": "Display title",
+          "description": "Readable title assembled from stored names and the record context. IDs remain authoritative; labels may change and are not unique.",
+          "sourceDataType": "text",
+          "nullable": false,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "displayTitle",
+          "displayName": "Display title",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "etfName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "daily_nav",
+          "column": "etf_name",
+          "sqlFile": "sql/views/daily_nav.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "etf_nav_daily",
+              "column": "trade_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            }
+          ]
+        },
+        "etfTicker": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "daily_nav",
+          "column": "etf_ticker",
+          "sqlFile": "sql/views/daily_nav.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "etf_nav_daily",
+              "column": "trade_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            }
+          ]
+        },
+        "etfMarketCode": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "daily_nav",
+          "column": "etf_market_code",
+          "sqlFile": "sql/views/daily_nav.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "etf_nav_daily",
+              "column": "trade_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            }
+          ]
+        },
+        "displayTitle": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "daily_nav",
+          "column": "display_title",
+          "sqlFile": "sql/views/daily_nav.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "etf_nav_daily",
+              "column": "trade_date"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "instrument_id"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "market_code"
+            },
+            {
+              "schema": "public",
+              "table": "instrument",
+              "column": "ticker"
+            }
+          ]
+        }
+      }
+    },
+    "FinancialMetric": {
+      "baseHash": "2f1b1514b4709408d95d71f40ced5aab3bed1c5effdf8031f11a0f143abd8f24",
+      "baseSemanticHash": "d59da4a75bb4a86eb51420aeae82b2c248fa8133f97770f9c18fba0295057f91",
+      "previousTitleProperty": "id",
+      "titleProperty": "displayTitle",
+      "properties": {
+        "companyName": {
+          "label": "Company name",
+          "description": "Current stored name of the company referenced by company_id; NULL if no name is resolved.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "companyName",
+          "displayName": "Company name",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "displayTitle": {
+          "label": "Display title",
+          "description": "Readable title assembled from stored names and the record context. IDs remain authoritative; labels may change and are not unique.",
+          "sourceDataType": "text",
+          "nullable": false,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "displayTitle",
+          "displayName": "Display title",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "companyName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "financial_metric",
+          "column": "company_name",
+          "sqlFile": "sql/views/financial_metric.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "company_profile",
+              "column": "dart_corp_code"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "entity_id"
+            },
+            {
+              "schema": "public",
+              "table": "financial_metric",
+              "column": "corp_code"
+            }
+          ]
+        },
+        "displayTitle": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "financial_metric",
+          "column": "display_title",
+          "sqlFile": "sql/views/financial_metric.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "company_profile",
+              "column": "dart_corp_code"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "entity_id"
+            },
+            {
+              "schema": "public",
+              "table": "financial_metric",
+              "column": "corp_code"
+            }
+          ]
+        }
+      }
+    },
+    "FinancialReportSnapshot": {
+      "baseHash": "cb761541d96e1f321f5b309b5ba40f47189ad3066e36d786dad2ec309db9dea0",
+      "baseSemanticHash": "1b8ce89d8ecde0c52aac5ea2925787adcd10a819edd111e7025f2a082ae0ddef",
+      "previousTitleProperty": "id",
+      "titleProperty": "displayTitle",
+      "properties": {
+        "companyName": {
+          "label": "Company name",
+          "description": "Current stored name of the company referenced by company_id; NULL if no name is resolved.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "companyName",
+          "displayName": "Company name",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "displayTitle": {
+          "label": "Display title",
+          "description": "Readable title assembled from stored names and the record context. IDs remain authoritative; labels may change and are not unique.",
+          "sourceDataType": "text",
+          "nullable": false,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "displayTitle",
+          "displayName": "Display title",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "companyName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "financial_report_snapshot",
+          "column": "company_name",
+          "sqlFile": "sql/views/financial_report_snapshot.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "company_profile",
+              "column": "dart_corp_code"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "entity_id"
+            },
+            {
+              "schema": "public",
+              "table": "financial_report_version",
+              "column": "corp_code"
+            }
+          ]
+        },
+        "displayTitle": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "financial_report_snapshot",
+          "column": "display_title",
+          "sqlFile": "sql/views/financial_report_snapshot.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "company_profile",
+              "column": "dart_corp_code"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "entity_id"
+            },
+            {
+              "schema": "public",
+              "table": "financial_report_version",
+              "column": "corp_code"
+            }
+          ]
+        }
+      }
+    },
+    "ReportedBusinessSegment": {
+      "baseHash": "617c066aa729b073d91c40e57b7d63a2029768e0781e4b9acf4c044b05dd49f6",
+      "baseSemanticHash": "29db5a0a74e57f661a8c45f1a8ab683c6b19dac50baa3052fea3824f41b339ef",
+      "previousTitleProperty": "segmentName",
+      "titleProperty": "displayTitle",
+      "properties": {
+        "companyName": {
+          "label": "Company name",
+          "description": "Current stored name of the company issuing the source disclosure; NULL if unresolved.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "companyName",
+          "displayName": "Company name",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "documentTitle": {
+          "label": "Document title",
+          "description": "Title of the disclosure containing this reported business segment.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "documentTitle",
+          "displayName": "Document title",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "conceptName": {
+          "label": "Concept name",
+          "description": "Current name of the concept identified by this segment record; NULL if unresolved.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "conceptName",
+          "displayName": "Concept name",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "displayTitle": {
+          "label": "Display title",
+          "description": "Readable title assembled from stored names and the record context. IDs remain authoritative; labels may change and are not unique.",
+          "sourceDataType": "text",
+          "nullable": false,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "displayTitle",
+          "displayName": "Display title",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "companyName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "reported_business_segment",
+          "column": "company_name",
+          "sqlFile": "sql/views/reported_business_segment.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "business_segment_fact",
+              "column": "period_label"
+            },
+            {
+              "schema": "public",
+              "table": "business_segment_fact",
+              "column": "segment_name"
+            },
+            {
+              "schema": "public",
+              "table": "disclosure_document",
+              "column": "document_id"
+            },
+            {
+              "schema": "public",
+              "table": "disclosure_document",
+              "column": "issuer_actor_id"
+            },
+            {
+              "schema": "public",
+              "table": "document",
+              "column": "title"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            }
+          ]
+        },
+        "documentTitle": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "reported_business_segment",
+          "column": "document_title",
+          "sqlFile": "sql/views/reported_business_segment.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "business_segment_fact",
+              "column": "period_label"
+            },
+            {
+              "schema": "public",
+              "table": "business_segment_fact",
+              "column": "segment_name"
+            },
+            {
+              "schema": "public",
+              "table": "disclosure_document",
+              "column": "document_id"
+            },
+            {
+              "schema": "public",
+              "table": "disclosure_document",
+              "column": "issuer_actor_id"
+            },
+            {
+              "schema": "public",
+              "table": "document",
+              "column": "title"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            }
+          ]
+        },
+        "conceptName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "reported_business_segment",
+          "column": "concept_name",
+          "sqlFile": "sql/views/reported_business_segment.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "business_segment_fact",
+              "column": "period_label"
+            },
+            {
+              "schema": "public",
+              "table": "business_segment_fact",
+              "column": "segment_name"
+            },
+            {
+              "schema": "public",
+              "table": "disclosure_document",
+              "column": "document_id"
+            },
+            {
+              "schema": "public",
+              "table": "disclosure_document",
+              "column": "issuer_actor_id"
+            },
+            {
+              "schema": "public",
+              "table": "document",
+              "column": "title"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            }
+          ]
+        },
+        "displayTitle": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "reported_business_segment",
+          "column": "display_title",
+          "sqlFile": "sql/views/reported_business_segment.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "business_segment_fact",
+              "column": "period_label"
+            },
+            {
+              "schema": "public",
+              "table": "business_segment_fact",
+              "column": "segment_name"
+            },
+            {
+              "schema": "public",
+              "table": "disclosure_document",
+              "column": "document_id"
+            },
+            {
+              "schema": "public",
+              "table": "disclosure_document",
+              "column": "issuer_actor_id"
+            },
+            {
+              "schema": "public",
+              "table": "document",
+              "column": "title"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            }
+          ]
+        }
+      }
+    },
+    "SourceEvent": {
+      "baseHash": "1abb929d49e7ffbffef8f2c0bcf9ed44057c62c55e98a724410e6ff967e059c0",
+      "baseSemanticHash": "dc21f260a82dbb08c95a696153508d16dc932ee28ad887279ddc3f453cc2d340",
+      "previousTitleProperty": "id",
+      "titleProperty": "displayTitle",
+      "properties": {
+        "argumentSummary": {
+          "label": "Argument summary",
+          "description": "Stored entity names or original mentions with their event role codes. This is display context, not a new participation link or inferred event interpretation.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "argumentSummary",
+          "displayName": "Argument summary",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "displayTitle": {
+          "label": "Display title",
+          "description": "Readable title assembled from stored names and the record context. IDs remain authoritative; labels may change and are not unique.",
+          "sourceDataType": "text",
+          "nullable": false,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "displayTitle",
+          "displayName": "Display title",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "argumentSummary": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "source_event",
+          "column": "argument_summary",
+          "sqlFile": "sql/views/source_event.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "event_argument",
+              "column": "entity_id"
+            },
+            {
+              "schema": "public",
+              "table": "event_argument",
+              "column": "mention_text"
+            },
+            {
+              "schema": "public",
+              "table": "event_argument",
+              "column": "role_code"
+            }
+          ]
+        },
+        "displayTitle": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "source_event",
+          "column": "display_title",
+          "sqlFile": "sql/views/source_event.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "event_argument",
+              "column": "entity_id"
+            },
+            {
+              "schema": "public",
+              "table": "event_argument",
+              "column": "mention_text"
+            },
+            {
+              "schema": "public",
+              "table": "event_argument",
+              "column": "role_code"
+            }
+          ]
+        }
+      }
+    },
+    "EventThread": {
+      "baseHash": "6c523de462bc97766f1fa748b518397a46f3ea094358e03dc93c5f7c9d7fe466",
+      "baseSemanticHash": "caff45b54f767c73caf601fbe1de7ab42b4dc322614238663511e3cd7d03dd03",
+      "previousTitleProperty": "id",
+      "titleProperty": "displayTitle",
+      "properties": {
+        "argumentSummary": {
+          "label": "Argument summary",
+          "description": "Stored entity names or original mentions with their event role codes. This is display context, not a new participation link or inferred event interpretation.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "argumentSummary",
+          "displayName": "Argument summary",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "displayTitle": {
+          "label": "Display title",
+          "description": "Readable title assembled from stored names and the record context. IDs remain authoritative; labels may change and are not unique.",
+          "sourceDataType": "text",
+          "nullable": false,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "displayTitle",
+          "displayName": "Display title",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "argumentSummary": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "event_thread",
+          "column": "argument_summary",
+          "sqlFile": "sql/views/event_thread.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "event_argument",
+              "column": "entity_id"
+            },
+            {
+              "schema": "public",
+              "table": "event_argument",
+              "column": "mention_text"
+            },
+            {
+              "schema": "public",
+              "table": "event_argument",
+              "column": "role_code"
+            },
+            {
+              "schema": "public",
+              "table": "event_thread_link",
+              "column": "source_event_id"
+            },
+            {
+              "schema": "public",
+              "table": "event_thread_link",
+              "column": "thread_id"
+            }
+          ]
+        },
+        "displayTitle": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "event_thread",
+          "column": "display_title",
+          "sqlFile": "sql/views/event_thread.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "event_argument",
+              "column": "entity_id"
+            },
+            {
+              "schema": "public",
+              "table": "event_argument",
+              "column": "mention_text"
+            },
+            {
+              "schema": "public",
+              "table": "event_argument",
+              "column": "role_code"
+            },
+            {
+              "schema": "public",
+              "table": "event_thread_link",
+              "column": "source_event_id"
+            },
+            {
+              "schema": "public",
+              "table": "event_thread_link",
+              "column": "thread_id"
+            }
+          ]
+        }
+      }
+    },
+    "MacroObservation": {
+      "baseHash": "9c5b1a7c9e69256068313af6bb2aef485f0719bc612b9a4179cfc1a816e7ae67",
+      "baseSemanticHash": "d7e4636651c151370bb9f6b460e6769fcd52b3b1a986749eb41741b0a4b266ea",
+      "previousTitleProperty": "id",
+      "titleProperty": "displayTitle",
+      "properties": {
+        "seriesName": {
+          "label": "Series name",
+          "description": "Display name for the five indicator codes defined by the source contract; NULL for an unrecognized code. The original series ID, source and unit are retained.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "seriesName",
+          "displayName": "Series name",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "displayTitle": {
+          "label": "Display title",
+          "description": "Readable title assembled from stored names and the record context. IDs remain authoritative; labels may change and are not unique.",
+          "sourceDataType": "text",
+          "nullable": false,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "displayTitle",
+          "displayName": "Display title",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "seriesName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "macro_observation",
+          "column": "series_name",
+          "sqlFile": "sql/views/macro_observation.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "macro_observation",
+              "column": "observation_date"
+            },
+            {
+              "schema": "public",
+              "table": "macro_observation",
+              "column": "series_id"
+            },
+            {
+              "schema": "public",
+              "table": "macro_observation",
+              "column": "source_series"
+            }
+          ]
+        },
+        "displayTitle": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "macro_observation",
+          "column": "display_title",
+          "sqlFile": "sql/views/macro_observation.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "macro_observation",
+              "column": "observation_date"
+            },
+            {
+              "schema": "public",
+              "table": "macro_observation",
+              "column": "series_id"
+            },
+            {
+              "schema": "public",
+              "table": "macro_observation",
+              "column": "source_series"
+            }
+          ]
+        }
+      }
+    },
+    "Equity": {
+      "baseHash": "0b53217a15f8d9e302411f7f49a8684d33a9792bb69f7fa6b3cdf4112f9def94",
+      "baseSemanticHash": "8b6a4c69c5669a2d4251eeada3f3b10b1bc7fd4daf1681d7a77c3bd68040f1ea",
+      "previousTitleProperty": "name",
+      "titleProperty": "name",
+      "properties": {
+        "issuerName": {
+          "label": "Issuer name",
+          "description": "Current stored name of the issuer referenced by issuer_id; NULL if no name is resolved.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "issuerName",
+          "displayName": "Issuer name",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "issuerName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "equity",
+          "column": "issuer_name",
+          "sqlFile": "sql/views/equity.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "entity_id"
+            },
+            {
+              "schema": "public",
+              "table": "equity_profile",
+              "column": "issuer_actor_id"
+            }
+          ]
+        }
+      }
+    },
+    "Disclosure": {
+      "baseHash": "1fc61a2801852e40451fc7116e7b02ed52dd39f2dda53ee587524d66af979e83",
+      "baseSemanticHash": "2c0c469becbfd27789aef8a66444ea4fa31f629cfa918a9ed1ac98c1d85a396d",
+      "previousTitleProperty": "title",
+      "titleProperty": "displayTitle",
+      "properties": {
+        "issuerName": {
+          "label": "Issuer name",
+          "description": "Current stored name of the issuer referenced by issuer_id; NULL if no name is resolved.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "issuerName",
+          "displayName": "Issuer name",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "displayTitle": {
+          "label": "Display title",
+          "description": "Original disclosure title when present; otherwise a display label composed of its stored issuer, disclosure type, reporting date and source document number. The original title remains unchanged.",
+          "sourceDataType": "text",
+          "nullable": false,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "displayTitle",
+          "displayName": "Display title",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "issuerName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "disclosure",
+          "column": "issuer_name",
+          "sqlFile": "sql/views/disclosure.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "disclosure_document",
+              "column": "disclosure_type"
+            },
+            {
+              "schema": "public",
+              "table": "disclosure_document",
+              "column": "issuer_actor_id"
+            },
+            {
+              "schema": "public",
+              "table": "disclosure_document",
+              "column": "report_date"
+            },
+            {
+              "schema": "public",
+              "table": "document",
+              "column": "title"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "entity_id"
+            }
+          ]
+        },
+        "displayTitle": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "disclosure",
+          "column": "display_title",
+          "sqlFile": "sql/views/disclosure.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "disclosure_document",
+              "column": "disclosure_type"
+            },
+            {
+              "schema": "public",
+              "table": "disclosure_document",
+              "column": "issuer_actor_id"
+            },
+            {
+              "schema": "public",
+              "table": "disclosure_document",
+              "column": "report_date"
+            },
+            {
+              "schema": "public",
+              "table": "document",
+              "column": "title"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "entity_id"
+            }
+          ]
+        }
+      }
+    },
+    "Concept": {
+      "baseHash": "5361ad8c3ba820b561a05162b40c3f40e8cac4e904b077042eb0c493348ea416",
+      "baseSemanticHash": "ed5a945419ba243c14975e77f1abbe754a3f49154d604888b091955207041a90",
+      "previousTitleProperty": "name",
+      "titleProperty": "name",
+      "properties": {
+        "parentConceptName": {
+          "label": "Parent concept name",
+          "description": "Current stored name of the parentConcept referenced by parent_concept_id; NULL if no name is resolved.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "parentConceptName",
+          "displayName": "Parent concept name",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "parentConceptName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "concept",
+          "column": "parent_concept_name",
+          "sqlFile": "sql/views/concept.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "concept",
+              "column": "parent_concept_id"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "entity_id"
+            }
+          ]
+        }
+      }
+    },
+    "ETF": {
+      "baseHash": "26f3e6a5e0f1ad99cd8405bf84e1fb2f26fc603e449e5e9b6e7f05bbe39550d0",
+      "baseSemanticHash": "abfc5e24641df8ad44f4b9afd82076ada9a661ea09424938be4c2674075a7825",
+      "previousTitleProperty": "name",
+      "titleProperty": "name",
+      "properties": {
+        "benchmarkName": {
+          "label": "Benchmark name",
+          "description": "Stored name of the resolved benchmark index; NULL when no benchmark is resolved.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "benchmarkName",
+          "displayName": "Benchmark name",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "themeName": {
+          "label": "Theme name",
+          "description": "Current name of the explicitly linked theme; not inferred from the ETF name.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "themeName",
+          "displayName": "Theme name",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "benchmarkName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "etf",
+          "column": "benchmark_name",
+          "sqlFile": "sql/views/etf.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "etf_profile",
+              "column": "primary_theme_concept_id"
+            },
+            {
+              "schema": "public",
+              "table": "etf_profile",
+              "column": "tracking_market_series_id"
+            },
+            {
+              "schema": "public",
+              "table": "market_series",
+              "column": "series_name"
+            }
+          ]
+        },
+        "themeName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "etf",
+          "column": "theme_name",
+          "sqlFile": "sql/views/etf.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "etf_profile",
+              "column": "primary_theme_concept_id"
+            },
+            {
+              "schema": "public",
+              "table": "etf_profile",
+              "column": "tracking_market_series_id"
+            },
+            {
+              "schema": "public",
+              "table": "market_series",
+              "column": "series_name"
+            }
+          ]
+        }
+      }
+    },
+    "NewsArticle": {
+      "baseHash": "8c2112cf958be3105a79a1033fb226595e8770b895ac26af0ba98ce99c6a3f71",
+      "baseSemanticHash": "79f1daf421760025b7e338d182f944284235c8b307bdd3985c2e8c3ee84271cc",
+      "previousTitleProperty": "title",
+      "titleProperty": "title",
+      "properties": {
+        "representativeTitle": {
+          "label": "Representative title",
+          "description": "Stored title of the linked representative article; NULL when no representative is linked.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "representativeTitle",
+          "displayName": "Representative title",
+          "status": "experimental",
+          "dataType": "String"
+        },
+        "themeName": {
+          "label": "Theme name",
+          "description": "Current name of the explicitly linked theme; not inferred from the article text.",
+          "sourceDataType": "text",
+          "nullable": true,
+          "sourceConstraints": null,
+          "mappingStatus": "ready",
+          "apiName": "themeName",
+          "displayName": "Theme name",
+          "status": "experimental",
+          "dataType": "String"
+        }
+      },
+      "mappings": {
+        "representativeTitle": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "news_article",
+          "column": "representative_title",
+          "sqlFile": "sql/views/news_article.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "document",
+              "column": "title"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "news_document",
+              "column": "representative_document_id"
+            },
+            {
+              "schema": "public",
+              "table": "news_document",
+              "column": "theme_concept_id"
+            }
+          ]
+        },
+        "themeName": {
+          "kind": "view_column",
+          "schema": "ontology_view",
+          "table": "news_article",
+          "column": "theme_name",
+          "sqlFile": "sql/views/news_article.sql",
+          "inputs": [
+            {
+              "schema": "public",
+              "table": "document",
+              "column": "title"
+            },
+            {
+              "schema": "public",
+              "table": "entity",
+              "column": "display_name"
+            },
+            {
+              "schema": "public",
+              "table": "news_document",
+              "column": "representative_document_id"
+            },
+            {
+              "schema": "public",
+              "table": "news_document",
+              "column": "theme_concept_id"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
