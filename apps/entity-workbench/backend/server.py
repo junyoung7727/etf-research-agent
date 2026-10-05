@@ -327,6 +327,12 @@ class Handler(BaseHTTPRequestHandler):
         if not self.safe_host(): return self.reply(403,{'error':'Local host only'})
         u=urlparse(self.path);q={k:v[0] for k,v in parse_qs(u.query).items()}
         try:
+            if u.path.startswith('/api/puppygraph/'):
+                from backend import puppygraph_viewer as viewer
+                if u.path=='/api/puppygraph/catalog': return self.reply(200,viewer.catalog())
+                if u.path=='/api/puppygraph/search': return self.reply(200,viewer.search(**q))
+                if u.path=='/api/puppygraph/connections': return self.reply(200,viewer.connections(**q))
+                return self.reply(404,{'error':'Not found'})
             with LOCK:
                 path=DATA/'snapshot.sqlite3'
                 if u.path=='/api/status': return self.reply(200,{**STATE,'ready':path.exists(),'token':self.token})
@@ -346,12 +352,13 @@ class Handler(BaseHTTPRequestHandler):
                 files.update({'/value-types':'value_types/value-types.html','/value-types.js':'value_types/value-types.js','/value-types.css':'value_types/value-types.css'})
                 files.update({'/interfaces':'value_types/interfaces.html','/interfaces.js':'value_types/interfaces.js','/interfaces.css':'value_types/interfaces.css'})
                 files.update({'/view-design':'view_design/index.html','/view-design.js':'view_design/app.js','/view-design.css':'view_design/style.css'})
+                files.update({'/puppygraph':'puppygraph/index.html','/puppygraph.js':'puppygraph/app.js','/puppygraph.css':'puppygraph/style.css'})
                 if u.path in files:
                     f=FRONTEND/files[u.path];types={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css'}
                     return self.reply(200,f.read_bytes(),types[f.suffix]+'; charset=utf-8')
                 self.reply(404,{'error':'Not found'})
-        except (ValueError,KeyError,TypeError) as exc: self.reply(400,{'error':str(exc) if u.path in ('/api/value-types','/api/interfaces','/api/model','/api/view-design') else '잘못된 조회 조건입니다.'})
-        except Exception: self.reply(503,{'error':'스냅샷 조회 실패. 새로 수집하거나 서버 로그를 확인하세요.'})
+        except (ValueError,KeyError,TypeError) as exc: self.reply(400,{'error':str(exc) if u.path.startswith('/api/puppygraph/') or u.path in ('/api/value-types','/api/interfaces','/api/model','/api/view-design') else '잘못된 조회 조건입니다.'})
+        except Exception: self.reply(503,{'error':'PuppyGraph에 연결할 수 없습니다. 클라우드 태스크·AWS 로그인·SSM 연결을 확인한 뒤 다시 조회하세요.' if u.path.startswith('/api/puppygraph/') else '스냅샷 조회 실패. 새로 수집하거나 서버 로그를 확인하세요.'})
 
     def do_POST(self):
         if not self.safe_host() or self.headers.get('X-Workbench-Token')!=self.token:
