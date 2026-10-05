@@ -1,0 +1,42 @@
+const {chromium}=require('../../edge/node_modules/@playwright/test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+(async()=>{
+ const browser=await chromium.launch({headless:true});
+ const page=await browser.newPage({viewport:{width:1500,height:1000}});
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ try{
+  await page.goto('http://127.0.0.1:5186/view-design');
+  await page.waitForSelector('#columnTable');
+  assert((await page.locator('#summary').innerText()).includes('23개 객체 뷰 · 37개 관계 뷰'));
+  assert(await page.locator('#stale').isHidden());
+  await page.locator('[data-id="Company"]').click();
+  assert.equal(await page.locator('#viewName').innerText(),'ontology_view.company');
+  assert((await page.locator('#detail').innerText()).includes('actor_id = actor.actor_id'));
+  await page.locator('[data-id="MarketCapitalization"]').click();
+  assert((await page.locator('[data-column="amount"]').innerText()).includes('typed NULL'));
+  assert((await page.locator('#detail').innerText()).includes('시가총액의 단위·대상·기준일'));
+  await page.screenshot({path:'output/view-design-20261005/market-cap-design.png',fullPage:true});
+  await page.locator('#relationsTab').click();
+  await page.locator('[data-id="Company_ParticipatesIn_SourceEvent"]').click();
+  assert((await page.locator('#detail').innerText()).includes('event_argument_id'));
+  assert.equal(await page.locator('[data-column="role_code"]').count(),1);
+  await page.locator('[data-id="FinancialMetric_CalculatedFrom_FinancialMetric"]').click();
+  assert((await page.locator('#detail').innerText()).includes('구현 보류'));
+  await page.locator('#issuesTab').click();
+  assert.equal(await page.locator('#list button').count(),10);
+  await page.screenshot({path:'output/view-design-20261005/open-questions.png',fullPage:true});
+  await page.goto('http://127.0.0.1:5186/modeler');
+  await page.waitForFunction(()=>document.querySelectorAll('[data-object]').length===23);
+  await page.locator('#objectJump').selectOption('FinancialMetric');
+  await page.locator('#editor a[href="/view-design?object=FinancialMetric"]').click();
+  await page.waitForSelector('#columnTable');
+  assert.equal(await page.locator('#viewName').innerText(),'ontology_view.financial_metric');
+  assert((await page.locator('#detail').innerText()).includes('raw_run_id'));
+  await page.setViewportSize({width:390,height:844});
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+  assert.deepEqual(errors,[]);
+  fs.writeFileSync('output/view-design-20261005/browser-verification.json',JSON.stringify({passed:true,pageErrors:errors,checks:['23 objects / 37 relations','source joins','unknown value withheld','participation role identity','blocked calculation edge','10 issues','modeler deep link','mobile width']},null,2));
+  console.log('view design browser checks passed');
+ }finally{await browser.close();}
+})().catch(error=>{console.error(error);process.exit(1);});

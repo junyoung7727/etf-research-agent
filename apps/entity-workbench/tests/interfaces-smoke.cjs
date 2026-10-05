@@ -1,0 +1,61 @@
+const {chromium,expect:baseExpect}=require('../../edge/node_modules/@playwright/test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const os=require('node:os');
+const {spawn}=require('node:child_process');
+const expect=baseExpect.configure({timeout:20000});
+(async()=>{
+ const root=path.resolve(__dirname,'../../..');
+ const temp=fs.mkdtempSync(path.join(os.tmpdir(),'orca-interfaces-'));
+ const output=path.join(root,'output/interfaces-20261005');fs.mkdirSync(output,{recursive:true});
+ const server=spawn(path.join(root,'.cache/news-filter-benchmark/Scripts/python.exe'),['-X','utf8',path.join(__dirname,'interfaces_test_server.py'),temp],{cwd:root,windowsHide:true,stdio:['pipe','pipe','pipe']});
+ let browser;
+ try{
+  const port=await new Promise((resolve,reject)=>{let out='';const timer=setTimeout(()=>reject(Error('Server timeout')),20000);server.stdout.on('data',chunk=>{out+=chunk;if(out.includes('\n')){clearTimeout(timer);resolve(Number(out.trim()));}});server.on('error',reject);server.on('exit',code=>{if(!out)reject(Error('Server exit '+code));});});
+  const base='http://127.0.0.1:'+port;
+  browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1550,height:1100}});
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(base+'/value-types');await expect(page.locator('nav a[href="/interfaces"]')).toBeVisible();await page.click('nav a[href="/interfaces"]');
+  await expect(page.locator('[data-interface]')).toHaveCount(3);
+  await expect(page.locator('#typeTitle')).toHaveText('Actor');
+  await expect(page.locator('[data-object]')).toHaveCount(2);
+  await expect(page.locator('[aria-label="Company.participatesIn"]')).toHaveValue('Company_ParticipatesIn_SourceEvent|forward');
+  await page.click('[data-interface="Security"]');
+  await expect(page.locator('[aria-label="ETF.dailyBars"]')).toHaveValue('DailyBar_ForSecurity_ETF|reverse');
+  await page.click('[data-interface="SourceDocument"]');
+  assert.equal(await page.locator('[data-object="FinancialReportSnapshot"]').count(),0);
+  await page.click('[data-interface="Actor"]');
+  await page.locator('#definitionFields textarea').fill('A reviewed actor interface.');await page.click('#save');
+  await expect(page.locator('#saveState')).toHaveText('로컬 저장 v1');
+  await page.reload();await expect(page.locator('#definitionFields textarea')).toHaveValue('A reviewed actor interface.');
+  await page.click('#applyLibrary');await expect(page.locator('#saveState')).toHaveText('라이브러리 원본');
+  assert(fs.readFileSync(path.join(temp,'library/metadata/interface_types/Actor.yaml'),'utf8').includes('A reviewed actor interface.'));
+  await page.selectOption('[aria-label="Company.id"]','name');await page.click('#save');
+  await expect(page.locator('#notice')).toContainText('PK');
+  assert.equal((await (await page.request.get(base+'/api/interfaces')).json()).pendingCount,0);
+  await page.selectOption('[aria-label="Company.id"]','id');
+  // An additional contract can be authored, mapped, saved, and promoted from the UI.
+  await page.click('#addType');await page.fill('#createName','NamedActor');await page.fill('#createDescription','An actor with a stable identity.');await page.click('#createForm button[type="submit"]');
+  await page.selectOption('#objectChoice','Company');await page.click('#addImplementation');
+  await page.click('#addProperty');await page.fill('#createName','name');await page.fill('#createDescription','Name of this actor.');await page.click('#createForm button[type="submit"]');
+  await page.selectOption('[aria-label="Company.name"]','name');
+  await page.click('#addLink');await page.fill('#createName','events');await page.fill('#createDescription','Events involving the actor.');await page.click('#createForm button[type="submit"]');
+  await page.selectOption('[data-link="events"] [data-value-kind="target"]','object:SourceEvent');
+  await page.selectOption('[aria-label="Company.events"]','Company_ParticipatesIn_SourceEvent|forward');
+  await page.click('#save');await expect(page.locator('#saveState')).toHaveText('로컬 저장 v3');
+  await page.click('#applyLibrary');await expect(page.locator('#saveState')).toHaveText('라이브러리 원본');
+  await page.reload();await expect(page.locator('[data-interface]')).toHaveCount(4);
+  assert.equal((await page.request.post(base+'/api/interfaces',{data:{}})).status(),403);
+  // Stale source edits are blocked and the saved draft is retained for comparison/export.
+  await page.click('[data-interface="Actor"]');await page.locator('#definitionFields textarea').fill('Draft before an external change.');await page.click('#save');await expect(page.locator('#saveState')).toHaveText('로컬 저장 v5');
+  fs.appendFileSync(path.join(temp,'library/metadata/object_types/Company.yaml'),'\n# external change\n');
+  await page.reload();await expect(page.locator('#notice')).toContainText('원본이 변경');await expect(page.locator('#applyLibrary')).toBeDisabled();
+  await expect(page.locator('#definitionFields textarea')).toHaveValue('Draft before an external change.');
+  await page.screenshot({path:path.join(output,'interfaces-desktop.png'),fullPage:true});
+  await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await page.screenshot({path:path.join(output,'interfaces-mobile.png'),fullPage:true});assert.deepEqual(errors,[]);
+  fs.writeFileSync(path.join(output,'browser-verification.json'),JSON.stringify({passed:true,pageErrors:errors,checks:['management navigation','3 seeded interfaces','6 concrete implementations','reverse mappings','snapshot exclusion','durable draft','library promotion','invalid PK mapping rejection','author new interface/property/link/implementation','missing token rejection','stale source preserves draft','mobile width']},null,2));
+  console.log('interface browser checks passed');
+ }finally{if(browser)await browser.close();server.stdin.end('stop\n');}
+})().catch(e=>{console.error(e);process.exit(1);});

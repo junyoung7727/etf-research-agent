@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ORCA · Value Types</title><link rel="stylesheet" href="/value-types.css"></head>
+<body>
+<header><a class="brand" href="/">O <span>ORCA / OBJECT STUDIO</span></a><nav><a href="/modeler">Objects & Links</a><a href="/value-types" aria-current="page">Value Types</a><a href="/interfaces">Interfaces</a></nav><div class="actions"><span id="saveState" role="status">불러오는 중</span><button id="reload">최신 확인</button><button id="export">JSON 내보내기</button><button id="save" class="primary" disabled>변경사항 저장</button></div></header>
+<div id="notice" role="alert" hidden></div>
+<main>
+<aside class="type-panel"><div class="panel-heading"><span class="eyebrow">VALUE TYPES</span><h1>값의 정의 <span id="typeCount"></span></h1><p>타입을 선택하고 허용값을 관리하세요.</p></div><input id="typeSearch" type="search" placeholder="Value Type 검색" aria-label="Value Type 검색"><div id="typeList" role="navigation" aria-label="Value Type 목록"></div><button id="addType">＋ Value Type 추가</button><div class="sidebar-note">String · Enum<br>원본 정의 + 로컬 설계 초안</div></aside>
+<section class="workspace">
+<div class="type-summary"><span class="eyebrow">SELECTED VALUE TYPE</span><h2 id="typeTitle">불러오는 중</h2><p id="typeDescription"></p><div id="typeMeta"></div></div>
+<section class="values-panel"><div class="section-heading"><h3>허용값 <span id="valueCount"></span></h3><button id="addValue">＋ 값 추가</button></div><div class="filters"><input id="valueSearch" type="search" placeholder="코드·설명 검색" aria-label="허용값 검색"><select id="groupFilter" aria-label="분류 필터"><option value="">모든 분류</option></select></div><div id="valueList" role="list" aria-label="허용값 목록"></div></section>
+<section class="graph-panel"><div class="section-heading"><div><span class="eyebrow">THREAD IDENTITY</span><h3 id="graphTitle">연결조건</h3></div><span class="badge">로컬 설계</span></div><p id="graphHint"></p><div id="conditionGraph" aria-label="스레드 연결조건 그래프"></div></section>
+</section>
+<aside class="detail-panel"><div class="panel-heading"><span class="eyebrow">DEFINITION & RULE</span><h2>정의와 연결조건</h2></div><div id="editor"></div><details open><summary>JSON · 선택한 정의</summary><pre id="definitionJson"></pre></details></aside>
+</main>
+<footer><span id="sourceState">원본 확인 중</span><span>초안 저장 → 라이브러리 파일 반영 · Git 커밋·운영 배포 없음</span><button id="applyLibrary" disabled>라이브러리에 반영</button></footer>
+<dialog id="createDialog"><form id="createForm"><span class="eyebrow" id="createKind"></span><h2 id="createTitle"></h2><label for="createCode">코드 / ID</label><input id="createCode" required maxlength="180" autocomplete="off"><label for="createDescription">Description · English</label><textarea id="createDescription" rows="3" maxlength="4000"></textarea><p id="createError" role="alert"></p><div class="dialog-actions"><button type="button" id="cancelCreate">취소</button><button class="primary" type="submit">추가</button></div></form></dialog>
+<script src="/value-types.js" defer></script>
+</body></html>
