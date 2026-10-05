@@ -18,6 +18,31 @@ class MarketCalculationTests(unittest.TestCase):
         return {'object_type':kind,'object_id':id,'status':'resolved','weight_ratio':weight,
             'object':{'properties':{'currencyCode':'KRW'}}}
 
+    def test_nav_change_uses_nav_endpoints_and_cannot_become_price_breadth(self):
+        rows=[{'object_type':kind,'object_id':kind+day,'properties':{
+            'tradeDate':day,('etfInstrumentId' if kind=='DailyNAV' else 'instrumentId'):'fund',
+            ('nav' if kind=='DailyNAV' else 'closePrice'):value}}
+            for kind,day,value in [('DailyNAV','2026-10-01','100'),('DailyNAV','2026-10-02','110'),
+                ('DailyBar','2026-10-01','90'),('DailyBar','2026-10-02','99')]]
+        ref=self.save('price_observations',rows,[self.member('fund',kind='ETF')])
+        response=self.tools.call('calculate_returns',{'dataset_ref':ref,'start_date':'2026-10-01',
+            'end_date':'2026-10-02','price_field':'nav'})
+        item=response['result']['items'][0]
+        self.assertEqual(item['return_ratio'],'0.1')
+        self.assertEqual(item['input_ids'],['DailyNAV2026-10-01','DailyNAV2026-10-02'])
+        self.assertIn('not market-price or total return',item['interpretation'])
+        with self.assertRaisesRegex(ValueError,'NAV'):
+            self.tools.market.breadth(response['result']['dataset_ref'])
+        missing,_=self.tools.market.returns(ref,'2026-09-30','2026-10-02','nav')
+        self.assertEqual(missing['items'][0]['status'],'unavailable')
+
+    def test_intraday_rows_carry_unknown_aggregation_basis_to_prevent_daily_total_inference(self):
+        items=[{'properties':{'instrumentId':'a','tradeDate':'2026-10-02','netQtyForeign':120}}]
+        self.tools.market.observations=lambda *args:(items,{'items':[self.member('a')]},{})
+        result,_=self.tools.market.flows({},'2026-10-02','2026-10-02','intraday')
+        self.assertIn('neither cumulative nor incremental',result['items'][0]['aggregation_basis'])
+        self.assertEqual(result['items'][0]['properties']['netQtyForeign'],120)
+
     def test_breadth_preserves_large_down_weight_and_missing_not_flat(self):
         items=[{'object_id':str(i),'status':'calculated','return_ratio':'0.01','weight_ratio':0.02} for i in range(9)]
         items+=[{'object_id':'large','status':'calculated','return_ratio':'-0.02','weight_ratio':0.75},

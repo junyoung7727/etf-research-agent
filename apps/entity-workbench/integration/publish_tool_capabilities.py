@@ -21,7 +21,7 @@ PURPOSES={
  'read_documents':'확보된 제목·발췌를 읽고 읽은 범위를 표시',
  'get_price_observations':'대상 목록·ETF 전체의 일봉과 선택적 NAV 조회',
  'get_flow_observations':'대상별 마감 수급과 장중 추정을 구분해 조회',
- 'calculate_returns':'저장된 두 날짜 가격으로 변화율 계산',
+ 'calculate_returns':'저장된 두 날짜 가격 또는 좌당 NAV의 변화율 계산',
  'summarize_price_breadth':'전체 대상의 상승·하락·보합·미확인과 원비중 집계',
  'calculate_nav_premium':'같은 날짜·통화·좌당 가격과 NAV의 괴리 계산',
  'list_macro_series':'그래프에 실제 존재하는 거시지표 목록 발견',

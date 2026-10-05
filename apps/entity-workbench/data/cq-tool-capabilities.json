@@ -76,7 +76,7 @@
     },
     {
       "name": "calculate_returns",
-      "purpose": "저장된 두 날짜 가격으로 변화율 계산",
+      "purpose": "저장된 두 날짜 가격 또는 좌당 NAV의 변화율 계산",
       "status": "implemented",
       "limitation": null
     },

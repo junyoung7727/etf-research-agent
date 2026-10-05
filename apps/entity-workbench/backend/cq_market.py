@@ -9,10 +9,10 @@ class MarketTools:
         common={'targets':SELECTOR,'start_date':STRING,'end_date':STRING,'limit':LIMIT}
         tools.register('get_price_observations','Read daily prices for the complete selected securities and optional ETF NAV. Preserve raw price basis, missing OHLC, currency and exact observation dates.',
             {**common,'include_nav':{'type':'boolean'}},['targets','start_date','end_date'],self.prices)
-        tools.register('get_flow_observations','Read daily finalized or intraday estimated investor flows for selected securities. Quantity and monetary fields remain separate; intraday slots are not asserted to be incremental intervals.',
+        tools.register('get_flow_observations','Read daily finalized or intraday estimated investor flows for selected securities. Quantity and monetary fields remain separate. Intraday values have UNKNOWN cumulative-versus-interval semantics: do not label them cumulative or incremental, sum slots or compare their totals with daily finalized flows.',
             {**common,'frequency':{'enum':['daily','intraday']}},['targets','start_date','end_date','frequency'],self.flows)
-        tools.register('calculate_returns','Calculate exact endpoint price returns from a saved complete price dataset. Missing dates, incompatible bases or missing values remain unavailable; raw close return is not total return.',
-            {'dataset_ref':RESULT_REF,'start_date':STRING,'end_date':STRING,'price_field':{'enum':['closePrice','adjustedClosePrice']},
+        tools.register('calculate_returns','Calculate exact endpoint price or per-unit NAV changes from a saved complete price dataset. Use price_field nav for NAV changes; NAV change is not a market-price or total return. Missing dates, incompatible bases or missing values remain unavailable.',
+            {'dataset_ref':RESULT_REF,'start_date':STRING,'end_date':STRING,'price_field':{'enum':['closePrice','adjustedClosePrice','nav']},
              'basis_policy':{'enum':['require_recorded_basis','observed_close_only'],'description':'observed_close_only calculates the arithmetic change in recorded exchange closes; it does not certify corporate-action-adjusted or total return.'}},
             ['dataset_ref','start_date','end_date','price_field'],self.returns)
         tools.register('summarize_price_breadth','Summarize positive, negative, flat and unavailable returns for the entire saved target set. Sum original weights without renormalization; not performance attribution.',
@@ -47,6 +47,8 @@ class MarketTools:
         items,selection,scope=self.observations(targets,start_date,end_date,kind,'instrumentId',limit)
         currencies={r['object_id']:(r.get('object') or {}).get('properties',{}).get('currencyCode') for r in selection['items']}
         for item in items:
+            if frequency=='intraday':
+                item['aggregation_basis']='unknown: neither cumulative nor incremental is certified; do not sum slots'
             if currencies.get(item['properties'].get('instrumentId'))=='KRW':
                 item['money_in_krw_100million']={k:str(Decimal(str(v))/Decimal('100000000'))
                     for k,v in item['properties'].items() if k.startswith('netVal') and v is not None}
@@ -60,8 +62,9 @@ class MarketTools:
         if self.tools.check_date(start_date)>=self.tools.check_date(end_date):raise ValueError('Return start must precede end')
         prices={}
         for obj in dataset['items']:
-            if obj['object_type']!='DailyBar':continue
-            prop=obj['properties'];prices.setdefault((prop['instrumentId'],prop['tradeDate']),[]).append(obj)
+            if obj['object_type']!=('DailyNAV' if price_field=='nav' else 'DailyBar'):continue
+            prop=obj['properties'];identifier=prop['etfInstrumentId' if price_field=='nav' else 'instrumentId']
+            prices.setdefault((identifier,prop['tradeDate']),[]).append(obj)
         rows=[]
         for member in dataset['selection']['items']:
             identifier=member['object_id'];left=prices.get((identifier,start_date),[]);right=prices.get((identifier,end_date),[])
@@ -72,7 +75,7 @@ class MarketTools:
             else:
                 a,b=left[0]['properties'],right[0]['properties']
                 x,y=a.get(price_field),b.get(price_field)
-                if basis_policy=='require_recorded_basis' and (not a.get('priceBasis') or a.get('priceBasis')!=b.get('priceBasis')):
+                if price_field!='nav' and basis_policy=='require_recorded_basis' and (not a.get('priceBasis') or a.get('priceBasis')!=b.get('priceBasis')):
                     row['reason']='unknown_or_mismatched_price_basis'
                 elif x is None or y is None or Decimal(x)<=0 or Decimal(y)<=0:
                     row['reason']='missing_or_nonpositive_price'
@@ -82,14 +85,17 @@ class MarketTools:
                     row.update(status='calculated',return_ratio=str(Decimal(y)/Decimal(x)-1),
                         price_basis=a.get('priceBasis'),price_field=price_field,
                         currency=member['object']['properties']['currencyCode'],
-                        interpretation='arithmetic change in observed closing quotes; adjustment comparability not certified' if basis_policy=='observed_close_only' else 'price return; not certified total return')
+                        interpretation='change in NAV per ETF unit in ETF currency; not market-price or total return' if price_field=='nav' else
+                            'arithmetic change in observed closing quotes; adjustment comparability not certified' if basis_policy=='observed_close_only' else 'price return; not certified total return')
             rows.append(row)
         return self.tools.result(rows,selection=dataset['selection'],scope={'dataset_kind':'returns',
-            'start_date':start_date,'end_date':end_date,'input_ref':dataset_ref,'formula':'end/start - 1','basis_policy':basis_policy},limit=100)
+            'start_date':start_date,'end_date':end_date,'input_ref':dataset_ref,'formula':'end/start - 1','basis_policy':basis_policy,
+            'value_kind':'nav_per_unit' if price_field=='nav' else 'market_price'},limit=100)
 
     def breadth(self,dataset_ref):
         dataset=self.tools.store.reference(dataset_ref,'dataset')
         if dataset['scope'].get('dataset_kind')!='returns':raise ValueError('A saved return dataset is required')
+        if dataset['scope'].get('value_kind')=='nav_per_unit':raise ValueError('NAV changes cannot describe market-price breadth')
         groups={key:{'count':0,'raw_weight_sum':Decimal(0),'missing_weights':0} for key in ('up','down','flat','unavailable')}
         for row in dataset['items']:
             value=Decimal(row['return_ratio']) if row['status']=='calculated' else None

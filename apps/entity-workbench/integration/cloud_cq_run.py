@@ -15,7 +15,7 @@ ROOT=Path(__file__).resolve().parent
 APP=ROOT/'apps/entity-workbench'
 sys.path.insert(0,str(APP));sys.path.insert(0,str(APP/'integration'))
 from backend.cq_tools import CQTools
-from run_cq_agent import PROMPT,OUTPUT,model_call_count
+from run_cq_agent import PROMPT,OUTPUT,model_call_count,valid_citations
 from edge_analysis_v2.agent.runner import run_model
 
 
@@ -40,9 +40,8 @@ async def main():
                     prompt=PROMPT,schemas=provider.schemas,call=provider.call,output_schema=OUTPUT,
                     artifacts=directory/'model',key=key,model=report['model'],timeout_seconds=600)
                 report.update(status='answered',response=response)
-                successful={r['response']['tool_run_id'] for r in provider.store.calls if not r['error']}
-                cited={i for c in response['claims'] for i in c['tool_run_ids']}
-                report['citation_ids_valid']=bool(cited) and cited<=successful
+                report['citation_ids_valid']=valid_citations(response,provider.store.calls)
+                if not report['citation_ids_valid']:raise ValueError('Each fact claim needs successful evidence; limitations may cite retained failure responses')
     except Exception as exc:
         report.update(status='error',error=str(exc).replace(key,'[redacted]'))
     finally:

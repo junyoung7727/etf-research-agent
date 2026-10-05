@@ -7,6 +7,24 @@ from backend import cq_benchmark
 
 
 class BenchmarkTests(unittest.TestCase):
+    def test_final_output_requires_actual_claims_with_successful_evidence_for_each(self):
+        from integration.run_cq_agent import valid_citations,OUTPUT
+        from jsonschema import Draft202012Validator
+        calls=[{'error':None,'response':{'tool_run_id':'good'}},{'error':'Unavailable','response':{'tool_run_id':'bad'}}]
+        response={'answer':'placeholder','claims':[],'limitations':[]}
+        self.assertFalse(valid_citations(response,calls))
+        self.assertFalse(Draft202012Validator(OUTPUT).is_valid(response))
+        response['claims']=[{'claim':'Observed fact','tool_run_ids':['good'],'purpose':'Answer requested scope','evidence_role':'support'}]
+        self.assertTrue(valid_citations(response,calls))
+        response['claims'].append({'claim':'Unsupported extra','tool_run_ids':[],'purpose':'Extra'})
+        self.assertFalse(valid_citations(response,calls))
+        response['claims'][-1]['tool_run_ids']=['bad']
+        self.assertFalse(valid_citations(response,calls))
+        response['claims'][-1].update(claim='The comparison was rejected',evidence_role='limitation')
+        self.assertTrue(valid_citations(response,calls))
+        response['claims'][-1]['tool_run_ids']=['not_saved']
+        self.assertFalse(valid_citations(response,calls))
+
     def test_new_failed_run_replaces_old_pass_without_counting_pilots_or_efficiency(self):
         runs=[{'run_id':name,'status':'answered','semantic_grade':grade} for name,grade in [
             ('CQ09-suite-20261005T160000Z','passed'),('CQ09-cloud-20261005T170000Z','failed'),
