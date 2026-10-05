@@ -353,6 +353,7 @@ class Handler(BaseHTTPRequestHandler):
                 files.update({'/interfaces':'value_types/interfaces.html','/interfaces.js':'value_types/interfaces.js','/interfaces.css':'value_types/interfaces.css'})
                 files.update({'/view-design':'view_design/index.html','/view-design.js':'view_design/app.js','/view-design.css':'view_design/style.css'})
                 files.update({'/puppygraph':'puppygraph/index.html','/puppygraph.js':'puppygraph/app.js','/puppygraph.css':'puppygraph/style.css'})
+                files.update({'/puppygraph-exploration.js':'puppygraph/exploration.js','/vendor/vis-network.min.js':'vendor/vis-network.min.js'})
                 if u.path in files:
                     f=FRONTEND/files[u.path];types={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css'}
                     return self.reply(200,f.read_bytes(),types[f.suffix]+'; charset=utf-8')
