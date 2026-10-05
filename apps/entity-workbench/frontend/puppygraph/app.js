@@ -2,6 +2,7 @@
 const $=id=>document.getElementById(id), NS='http://www.w3.org/2000/svg';
 const state={catalog:null,nodes:new Map(),edges:new Map(),selected:null,busy:false,mode:'all',root:null,cursor:'',scale:1,x:0,y:0,width:1,height:1};
 const titles={Company:'회사',Equity:'주식',ETF:'ETF',Organization:'조직',ETFHolding:'보유 구성종목',DailyBar:'일봉',SourceEvent:'사건',NewsArticle:'뉴스',Disclosure:'공시',FinancialMetric:'재무지표',FinancialReportSnapshot:'보고서 수집본'};
+Object.assign(titles,{DailyInvestorFlow:'일별 투자자 수급',DailyNAV:'일별 순자산가치',EventThread:'사건 흐름',ExchangeSecurityClassification:'거래소 증권 분류',IntradayInvestorFlow:'장중 투자자 수급',MarketCapitalization:'시가총액',ReportedBusinessSegment:'보고된 사업부문',SecurityIndustryClassification:'증권 업종 분류',SecurityListingSnapshot:'상장정보',Concept:'개념',MarketIndex:'시장 지수'});
 const element=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
 function svg(tag,attrs,text){const e=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs||{}))e.setAttribute(k,v);if(text!==undefined)e.textContent=text;return e;}
 function notice(text,kind=''){$('notice').textContent=text;$('notice').className=kind;}
@@ -17,40 +18,83 @@ function transform(){$('scene').setAttribute('transform',`translate(${state.x},$
 function fit(){const w=$('graph').clientWidth,h=$('graph').clientHeight;state.scale=Math.min((w-50)/state.width,(h-50)/state.height,1.2);state.x=(w-state.width*state.scale)/2-(state.minX||0)*state.scale;state.y=(h-state.height*state.scale)/2-(state.minY||0)*state.scale;transform();}
 function zoom(factor,cx=$('graph').clientWidth/2,cy=$('graph').clientHeight/2){const next=Math.max(.02,Math.min(3,state.scale*factor));state.x=cx-(cx-state.x)*next/state.scale;state.y=cy-(cy-state.y)*next/state.scale;state.scale=next;transform();}
 const positions=new Map();
+const expandedTypes=new Set();
+let visibleNodes=new Map(),visibleEdges=new Map();
+const typeKey=type=>JSON.stringify(['type-group',type]);
+function projectNetwork(){
+ visibleNodes=new Map();visibleEdges=new Map();
+ for(const n of state.nodes.values()){
+  const key=typeKey(n.type);
+  if(!visibleNodes.has(key))visibleNodes.set(key,{key,type:n.type,label:titles[n.type]||n.type,group:true,count:0});
+  visibleNodes.get(key).count++;
+  if(expandedTypes.has(n.type)||(state.mode==='one'&&state.root?.key===n.key)){
+   visibleNodes.set(n.key,n);
+   const membership={key:JSON.stringify(['membership',n.key]),source:key,target:n.key,membership:true};
+   visibleEdges.set(membership.key,membership);
+  }
+ }
+ for(const e of state.edges.values()){
+  const source=visibleNodes.has(e.source)?e.source:typeKey(state.nodes.get(e.source).type);
+  const target=visibleNodes.has(e.target)?e.target:typeKey(state.nodes.get(e.target).type);
+  if(source===e.source&&target===e.target){visibleEdges.set(e.key,e);continue;}
+  const key=JSON.stringify(['summary',e.type,e.properties.roleCode||'',source,target]);
+  if(!visibleEdges.has(key))visibleEdges.set(key,{...e,key,source,target,summary:true,originalKeys:[]});
+  visibleEdges.get(key).originalKeys.push(e.key);
+ }
+}
+function toggleType(type){
+ if(expandedTypes.has(type))expandedTypes.delete(type);else expandedTypes.add(type);
+ state.selected=typeKey(type);render();
+ for(const group of $('scene').querySelectorAll('.type-node'))if(group.dataset.key===state.selected)group.focus();
+ const n=visibleNodes.get(typeKey(type));
+ $('detail').replaceChildren(element('span','타입 묶음','type-badge'),element('h2',n.label),element('p',`불러온 실제 객체 ${n.count}개 · ${expandedTypes.has(type)?'펼침':'접힘'}`),element('p','타입을 다시 누르면 실제 데이터를 접거나 펼칩니다. 점선은 타입 소속을 뜻하며 실제 관계가 아닙니다.','muted'));
+ $('properties').replaceChildren();$('focus').disabled=true;
+}
+function selectVisibleEdge(key){
+ const e=visibleEdges.get(key);
+ if(!e.summary){selectEdge(key);return;}
+ state.selected=key;$('focus').disabled=true;
+ $('detail').replaceChildren(element('span','실제 관계 묶음','type-badge'),element('h2',e.type.split('_')[1]),element('p',`${visibleNodes.get(e.source).label} → ${visibleNodes.get(e.target).label}`),element('p',`불러온 관계 ${e.originalKeys.length}개. 타입을 펼치면 개별 객체 사이의 연결을 볼 수 있습니다.`));
+ $('properties').replaceChildren();
+ for(const originalKey of e.originalKeys){const original=state.edges.get(originalKey),button=element('button',`${state.nodes.get(original.source).label} → ${state.nodes.get(original.target).label}${original.properties.roleCode?' · '+original.properties.roleCode:''}`,'result');button.onclick=()=>selectEdge(originalKey);$('properties').append(button);}
+ highlight();
+}
 const colors={ETF:'#f7c75f',Company:'#70b5f7',Equity:'#7fcea4',Organization:'#b5a1ef',ETFHolding:'#f09b69',SourceEvent:'#d391d8',NewsArticle:'#a4bdde',Disclosure:'#95aec7',DailyBar:'#79cdd3',FinancialMetric:'#c6ce7e'};
 let nodeDrag=null,suppressClick=false;
-function nodeRadius(n){return n.type==='ETFHolding'?24:n.type==='ETF'?36:30;}
+function nodeRadius(n){return n.group?44:n.type==='ETFHolding'?24:n.type==='ETF'?36:30;}
 function settle(){
- const nodes=[...state.nodes.values()],index=new Map(nodes.map((n,i)=>[n.key,i]));
+ const nodes=[...visibleNodes.values()],index=new Map(nodes.map((n,i)=>[n.key,i]));
  const radius=Math.max(120,Math.sqrt(nodes.length)*50);
- nodes.forEach((n,i)=>{if(!positions.has(n.key)){const a=i*2.39996;const adjacent=[...state.edges.values()].find(e=>(e.source===n.key&&positions.has(e.target))||(e.target===n.key&&positions.has(e.source)));const origin=adjacent?positions.get(adjacent.source===n.key?adjacent.target:adjacent.source):{x:0,y:0};positions.set(n.key,{x:origin.x+Math.cos(a)*radius,y:origin.y+Math.sin(a)*radius,pinned:false});}});
- const links=[...state.edges.values()].map(e=>[index.get(e.source),index.get(e.target)]);
+ nodes.forEach((n,i)=>{if(!positions.has(n.key)){const a=i*2.39996;const adjacent=[...visibleEdges.values()].find(e=>(e.source===n.key&&positions.has(e.target))||(e.target===n.key&&positions.has(e.source)));const origin=adjacent?positions.get(adjacent.source===n.key?adjacent.target:adjacent.source):{x:0,y:0};positions.set(n.key,{x:origin.x+Math.cos(a)*radius,y:origin.y+Math.sin(a)*radius,pinned:false});}});
+ const links=[...visibleEdges.values()].map(e=>[index.get(e.source),index.get(e.target)]);
  for(let tick=0;tick<(nodes.length>150?60:240);tick++){
   const force=nodes.map(()=>({x:0,y:0})),alpha=.7*(1-tick/270);
   for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
    const a=positions.get(nodes[i].key),b=positions.get(nodes[j].key);let dx=b.x-a.x,dy=b.y-a.y;
    if(Math.abs(dx)+Math.abs(dy)<.01){dx=.1*(i+1);dy=.1*(j+1);}
-   const d=Math.max(1,Math.hypot(dx,dy)),push=Math.min(18,7000/(d*d)+(d<100?(100-d)*.22:0));
+   const d=Math.max(1,Math.hypot(dx,dy)),clearance=nodeRadius(nodes[i])+nodeRadius(nodes[j])+55;
+   const push=Math.min(30,12000/(d*d)+(d<clearance?(clearance-d)*.8:0));
    force[i].x-=dx/d*push;force[i].y-=dy/d*push;force[j].x+=dx/d*push;force[j].y+=dy/d*push;
+   if(Math.abs(dx)<190&&Math.abs(dy)<100){const gap=(100-Math.abs(dy))*.2,sign=dy<0?-1:1;force[i].y-=sign*gap;force[j].y+=sign*gap;}
   }
   for(const [i,j] of links){if(i===j)continue;const a=positions.get(nodes[i].key),b=positions.get(nodes[j].key),dx=b.x-a.x,dy=b.y-a.y,d=Math.max(1,Math.hypot(dx,dy)),pull=(d-165)*.025;force[i].x+=dx/d*pull;force[i].y+=dy/d*pull;force[j].x-=dx/d*pull;force[j].y-=dy/d*pull;}
   nodes.forEach((n,i)=>{const p=positions.get(n.key);if(!p.pinned){p.x+=Math.max(-14,Math.min(14,force[i].x-p.x*.0015))*alpha;p.y+=Math.max(-14,Math.min(14,force[i].y-p.y*.0015))*alpha;}});
  }
 }
 function networkBounds(){
- const points=[...state.nodes.keys()].map(k=>positions.get(k));
+ const points=[...visibleNodes.keys()].map(k=>positions.get(k));
  const minX=Math.min(...points.map(p=>p.x),0)-100,minY=Math.min(...points.map(p=>p.y),0)-80;
  const maxX=Math.max(...points.map(p=>p.x),0)+100,maxY=Math.max(...points.map(p=>p.y),0)+100;
  state.minX=minX;state.minY=minY;state.width=maxX-minX;state.height=maxY-minY;
 }
 function drawNetwork(){
  const pairs=new Map();
- for(const e of state.edges.values()){const pair=JSON.stringify([e.source,e.target].sort());if(!pairs.has(pair))pairs.set(pair,[]);pairs.get(pair).push(e.key);}
+ for(const e of visibleEdges.values()){const pair=JSON.stringify([e.source,e.target].sort());if(!pairs.has(pair))pairs.set(pair,[]);pairs.get(pair).push(e.key);}
  for(const group of $('scene').querySelectorAll('.edge')){
-  const e=state.edges.get(group.dataset.key),a=positions.get(e.source),b=positions.get(e.target);
+  const e=visibleEdges.get(group.dataset.key),a=positions.get(e.source),b=positions.get(e.target);
   const twins=pairs.get(JSON.stringify([e.source,e.target].sort())),offset=(twins.indexOf(e.key)-(twins.length-1)/2)*38;
   const dx=b.x-a.x,dy=b.y-a.y,d=Math.max(1,Math.hypot(dx,dy)),nx=dx/d,ny=dy/d;
-  const ra=nodeRadius(state.nodes.get(e.source))+3,rb=nodeRadius(state.nodes.get(e.target))+7;
+  const ra=nodeRadius(visibleNodes.get(e.source))+3,rb=nodeRadius(visibleNodes.get(e.target))+7;
   let path,lx,ly,angle;
   if(e.source===e.target){const lift=115+twins.indexOf(e.key)*36;path=`M ${a.x-20} ${a.y-22} C ${a.x-95} ${a.y-lift},${a.x+95} ${a.y-lift},${a.x+20} ${a.y-28}`;lx=a.x;ly=a.y-lift*.75-6;angle=0;}
   else{const bend=offset*(e.source<e.target?1:-1);const cx=(a.x+b.x)/2-ny*bend,cy=(a.y+b.y)/2+nx*bend;path=`M ${a.x+nx*ra} ${a.y+ny*ra} Q ${cx} ${cy} ${b.x-nx*rb} ${b.y-ny*rb}`;lx=(a.x+b.x)/2-ny*bend/2;ly=(a.y+b.y)/2+nx*bend/2;angle=Math.atan2(dy,dx)*180/Math.PI;if(angle>90||angle<-90)angle+=180;}
@@ -59,33 +103,33 @@ function drawNetwork(){
  }
  for(const group of $('scene').querySelectorAll('.node')){const p=positions.get(group.dataset.key);group.setAttribute('transform',`translate(${p.x},${p.y})`);}
 }
-async function render(){
- settle();$('scene').replaceChildren();
- for(const e of state.edges.values()){
-  const text=e.properties.roleCode||e.type.split('_')[1],width=Math.max(60,text.length*6+14);
-  const group=svg('g',{class:'edge',tabindex:'0',role:'button','aria-label':text});group.dataset.key=e.key;
-  group.append(svg('path',{class:'edge-hit'}),svg('path',{class:'edge-line','marker-end':'url(#arrow)'}));
+function render(){
+ projectNetwork();settle();$('scene').replaceChildren();
+ for(const e of visibleEdges.values()){
+  const text=e.membership?'':(e.properties.roleCode||e.type.split('_')[1])+(e.summary?' \u00b7 '+e.originalKeys.length:''),width=Math.max(60,text.length*6+14);
+  const group=svg('g',{class:'edge'+(e.membership?' membership':e.summary?' summary-edge':''),tabindex:e.membership?'-1':'0',role:e.membership?'presentation':'button','aria-label':text});group.dataset.key=e.key;
+  group.append(svg('path',{class:'edge-hit'}),svg('path',{class:'edge-line','marker-end':e.membership?'':'url(#arrow)'}));
   const caption=svg('g',{class:'edge-caption'});caption.append(svg('rect',{x:-width/2,y:-9,width,height:18,rx:3,class:'edge-label-bg'}),svg('text',{'text-anchor':'middle',y:4},text));group.append(caption);
-  group.onclick=()=>selectEdge(e.key);group.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();selectEdge(e.key);}};$('scene').append(group);
+  if(!e.membership){group.onclick=()=>selectVisibleEdge(e.key);group.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();selectVisibleEdge(e.key);}}}$('scene').append(group);
  }
- for(const n of state.nodes.values()){
-  const r=nodeRadius(n),color=colors[n.type]||'#a1b8cb',group=svg('g',{class:'node',tabindex:'0',role:'button','aria-label':(titles[n.type]||n.type)+' '+n.label});group.dataset.key=n.key;group.dataset.type=n.type;
-  group.append(svg('title',{},n.label+'\n'+n.type+'\n'+n.id),svg('circle',{r:r+6,class:'node-halo'}),svg('circle',{r,fill:color,class:'node-circle'}));
-  const center=n.type==='ETFHolding'?(n.properties.weightRatio===null?'?':new Intl.NumberFormat('ko-KR',{style:'percent',maximumFractionDigits:1}).format(n.properties.weightRatio)):titles[n.type]||n.type;
+ for(const n of visibleNodes.values()){
+  const r=nodeRadius(n),color=colors[n.type]||'#a1b8cb',group=svg('g',{class:'node'+(n.group?' type-node':' record-node'),tabindex:'0',role:'button','aria-label':(titles[n.type]||n.type)+' '+n.label});group.dataset.key=n.key;group.dataset.type=n.type;if(n.group)group.setAttribute('aria-expanded',String(expandedTypes.has(n.type)));
+  group.append(svg('title',{},n.label+'\n'+(n.group?String(n.count):n.type+'\n'+n.id)),svg('circle',{r:r+6,class:'node-halo'}),svg('circle',{r,fill:color,class:'node-circle'}));
+  const center=n.group?(expandedTypes.has(n.type)?'\u2212 ':'+ ')+n.count:n.type==='ETFHolding'?(n.properties.weightRatio===null?'?':new Intl.NumberFormat('ko-KR',{style:'percent',maximumFractionDigits:1}).format(n.properties.weightRatio)):titles[n.type]||n.type;
   group.append(svg('text',{'text-anchor':'middle',y:4,class:'node-center'},center.length>9?center.slice(0,8):center));
-  const label=n.type==='ETFHolding'?(n.properties.securityName||n.label):n.label;
+  const label=n.group?n.label:n.type==='ETFHolding'?(n.properties.securityName||n.label):n.label;
   group.append(svg('text',{'text-anchor':'middle',y:r+23,class:'node-title'},label.length>28?label.slice(0,27)+'…':label));
-  if(n.type==='ETFHolding')group.append(svg('text',{'text-anchor':'middle',y:r+39,class:'node-title'},[n.properties.securityTicker,n.properties.tradeDate].filter(Boolean).join(' · ')));
-  group.onclick=()=>{if(!suppressClick)selectNode(n.key);};
-  group.ondblclick=()=>{if(!state.busy){selectNode(n.key);focus();}};
-  group.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();selectNode(n.key);if(event.shiftKey)focus();}};
+  if(!n.group&&n.type==='ETFHolding')group.append(svg('text',{'text-anchor':'middle',y:r+39,class:'node-title'},[n.properties.securityTicker,n.properties.tradeDate].filter(Boolean).join(' · ')));
+  group.onclick=()=>{if(!suppressClick){if(n.group)toggleType(n.type);else selectNode(n.key);}};
+  group.ondblclick=()=>{if(!n.group&&!state.busy){selectNode(n.key);focus();}};
+  group.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();if(n.group)toggleType(n.type);else{selectNode(n.key);if(event.shiftKey)focus();}}};
   group.onpointerdown=event=>{if(event.button!==0)return;event.stopPropagation();const p=positions.get(n.key);nodeDrag={key:n.key,x:event.clientX,y:event.clientY,px:p.x,py:p.y,moved:false};suppressClick=false;group.setPointerCapture(event.pointerId);};
-  group.onpointermove=event=>{if(!nodeDrag||nodeDrag.key!==n.key)return;const dx=event.clientX-nodeDrag.x,dy=event.clientY-nodeDrag.y;if(Math.hypot(dx,dy)>4)nodeDrag.moved=true;if(nodeDrag.moved){const p=positions.get(n.key);p.x=nodeDrag.px+dx/state.scale;p.y=nodeDrag.py+dy/state.scale;p.pinned=true;drawNetwork();}};
+  group.onpointermove=event=>{if(!nodeDrag||nodeDrag.key!==n.key)return;const dx=event.clientX-nodeDrag.x,dy=event.clientY-nodeDrag.y;if(!nodeDrag.moved&&Math.hypot(dx,dy)>4){nodeDrag.moved=true;$('scene').append(group);group.setPointerCapture(event.pointerId);}if(nodeDrag.moved){const p=positions.get(n.key);p.x=nodeDrag.px+dx/state.scale;p.y=nodeDrag.py+dy/state.scale;p.pinned=true;drawNetwork();}};
   group.onpointerup=group.onpointercancel=()=>{if(nodeDrag){suppressClick=nodeDrag.moved;nodeDrag=null;networkBounds();setTimeout(()=>suppressClick=false,0);}};
   $('scene').append(group);
  }
- drawNetwork();networkBounds();$('empty').hidden=state.nodes.size>0;$('counts').textContent=`객체 ${state.nodes.size} · 관계 ${state.edges.size}`;highlight();fit();
- $('legend').replaceChildren();for(const type of new Set([...state.nodes.values()].map(n=>n.type))){const chip=element('span',titles[type]||type);chip.style.setProperty('--node-color',colors[type]||'#a1b8cb');$('legend').append(chip);}
+ drawNetwork();networkBounds();$('empty').hidden=visibleNodes.size>0;$('counts').textContent=`불러온 객체 ${state.nodes.size} · 관계 ${state.edges.size}`;highlight();fit();
+ $('legend').replaceChildren();for(const type of new Set([...visibleNodes.values()].map(n=>n.type))){const chip=element('span',titles[type]||type);chip.style.setProperty('--node-color',colors[type]||'#a1b8cb');$('legend').append(chip);}
 }
 
 function modes(){for(const mode of ['all','one'])$(mode+'Mode').setAttribute('aria-pressed',String(state.mode===mode));$('graphTitle').textContent=state.mode==='all'?'전체 연결':(state.root?.label||'중심 객체 선택')+' · 모든 연결';}
@@ -95,7 +139,7 @@ async function load(reset=false,mode=state.mode,root=state.root){
   const params=mode==='one'?{kind:root.type,identifier:root.id}:{};
   if(!reset)params.cursor=state.cursor;
   const data=await api('connections',params);
-  if(reset){state.nodes.clear();state.edges.clear();positions.clear();state.selected=null;$('detail').replaceChildren(element('h2','객체나 연결을 선택하세요.'));$('properties').replaceChildren();if(root&&mode==='one')state.nodes.set(root.key,root);}
+  if(reset){state.nodes.clear();state.edges.clear();positions.clear();expandedTypes.clear();state.selected=null;$('detail').replaceChildren(element('h2','객체나 연결을 선택하세요.'));$('properties').replaceChildren();if(root&&mode==='one')state.nodes.set(root.key,root);}
   state.mode=mode;state.root=root;state.cursor=data.cursor;
   for(const n of data.nodes)state.nodes.set(n.key,n);for(const e of data.edges)state.edges.set(e.key,e);
   await render();modes();checked(data);$('more').hidden=data.complete;
