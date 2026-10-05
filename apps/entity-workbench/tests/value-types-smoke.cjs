@@ -1,0 +1,85 @@
+const {chromium, expect} = require('../../edge/node_modules/@playwright/test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const os = require('node:os');
+const {spawn} = require('node:child_process');
+
+(async () => {
+  const root = path.resolve(__dirname, '../../..');
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'orca-value-types-'));
+  const output = path.join(root, 'output/entity-workbench');
+  fs.mkdirSync(output, {recursive:true});
+  const source = "import sys,threading;from pathlib import Path;sys.path.insert(0,'apps/entity-workbench');from backend import server as workbench;workbench.DATA=Path(sys.argv[1]);server=workbench.ThreadingHTTPServer(('127.0.0.1',0),workbench.Handler);threading.Thread(target=server.serve_forever,daemon=True).start();print(server.server_port,flush=True);sys.stdin.readline();server.shutdown();server.server_close()";
+  const server = spawn(path.join(root,'.cache/news-filter-benchmark/Scripts/python.exe'), ['-X','utf8','-c',source,temp], {cwd:root,windowsHide:true,stdio:['pipe','pipe','pipe']});
+  let browser;
+  try {
+    const port = await new Promise((resolve,reject) => {
+      let out=''; const timer=setTimeout(()=>reject(new Error('Test server startup timed out')),20000);
+      server.stdout.on('data',data=>{out+=data; if(/^\d+\s/.test(out)){clearTimeout(timer);resolve(Number(out.trim()));}});
+      server.on('error',err=>{clearTimeout(timer);reject(err);});
+      server.stderr.on('data',data=>process.stderr.write(data));
+      server.on('exit',code=>{clearTimeout(timer);reject(new Error('Test server exited '+code));});
+    });
+    const base = `http://127.0.0.1:${port}`;
+    browser = await chromium.launch({headless:true});
+    const page = await browser.newPage({viewport:{width:1560,height:1100}});
+    const errors=[]; page.on('pageerror',e=>errors.push(e.message));
+    await page.goto(base+'/value-types');
+    await expect(page.locator('.type-item')).toHaveCount(8);
+    await expect(page.locator('#valueCount')).toHaveText('53 / 53');
+    await page.locator('#valueSearch').fill('COMPANY.CONTRACT.SIGNING');
+    await page.locator('.value-item').click();
+    await expect(page.locator('#conditionGraph svg')).toHaveCount(1);
+    await expect(page.locator('#requiredFields')).toHaveValue('SUPPLIER\nCUSTOMER\nCONTRACT_OBJECT');
+    await page.locator('#valueDefinition').fill('A reviewed supply contract event.');
+    await page.locator('#optionalFields').fill('');
+    await page.locator('#save').click();
+    await expect(page.locator('#saveState')).toHaveText('로컬 저장 v1');
+    await page.reload();
+    await expect(page.locator('.type-item')).toHaveCount(8);
+    await page.locator('#valueSearch').fill('COMPANY.CONTRACT.SIGNING');
+    await page.locator('.value-item').click();
+    await expect(page.locator('#valueDefinition')).toHaveValue('A reviewed supply contract event.');
+    await expect(page.locator('#optionalFields')).toHaveValue('');
+    await page.screenshot({path:path.join(output,'value-types-desktop.png'),fullPage:true});
+    await page.locator('#requiredFields').fill('UNDECLARED_ROLE');
+    await page.locator('#save').click();
+    await expect(page.locator('#notice')).toContainText('미정의');
+    await page.locator('#requiredFields').fill('SUPPLIER\nCUSTOMER\nCONTRACT_OBJECT');
+    await page.locator('[data-type="EventStageCode"]').click();
+    await expect(page.locator('#graphHint')).toContainText('EventTypeCode');
+    await page.locator('#addType').click();
+    await page.locator('#createCode').fill('ReviewState');
+    await page.locator('#createDescription').fill('Review disposition.');
+    await page.locator('#createForm button[type=submit]').click();
+    await expect(page.locator('#typeTitle')).toHaveText('ReviewState');
+    await page.locator('#addValue').click();
+    await page.locator('#createCode').fill('PENDING');
+    await page.locator('#createDescription').fill('<img src=x onerror=alert(1)> Awaiting review.');
+    await page.locator('#createForm button[type=submit]').click();
+    assert.equal(await page.locator('#valueList img').count(),0,'Descriptions must be escaped');
+    await page.locator('#save').click();
+    await expect(page.locator('#saveState')).toHaveText('로컬 저장 v2');
+    await page.reload();
+    await expect(page.locator('.type-item')).toHaveCount(9);
+    await page.locator('[data-type="ReviewState"]').click();
+    await expect(page.locator('#valueCode')).toHaveValue('PENDING');
+    await page.setViewportSize({width:390,height:844});
+    await page.locator('[data-type="EventTypeCode"]').click();
+    await page.locator('#valueSearch').fill('COMPANY.CONTRACT.SIGNING');
+    await page.locator('.value-item').click();
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Page must fit narrow screens');
+    await page.screenshot({path:path.join(output,'value-types-mobile.png'),fullPage:true});
+    assert.deepEqual(errors,[]);
+    const result={passed:true,sourceEventTypes:53,importedValueTypes:8,checks:['source completeness','type/value navigation','rule graph','durable edits','invalid rule rejection','custom enum creation','HTML escaping','narrow layout'],pageErrors:errors};
+    fs.writeFileSync(path.join(output,'value-types-verification.json'),JSON.stringify(result,null,2));
+    console.log(JSON.stringify(result));
+  } finally {
+    if(browser) await browser.close();
+    server.stdin.end('stop\n');
+    await new Promise(resolve=>{if(server.exitCode!==null)return resolve();server.once('exit',resolve);setTimeout(()=>{server.kill();resolve();},5000).unref();});
+    // Only the test-owned, freshly created directory is removed.
+    if(path.dirname(temp)===os.tmpdir() && path.basename(temp).startsWith('orca-value-types-')) fs.rmSync(temp,{recursive:true,force:true});
+  }
+})().catch(error=>{console.error(error);process.exitCode=1;});

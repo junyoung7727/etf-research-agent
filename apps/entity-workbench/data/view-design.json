@@ -1,0 +1,1732 @@
+{
+  "revision": 3,
+  "designedAt": "2026-10-05",
+  "status": "design_only",
+  "schema": "ontology_view",
+  "rules": [
+    "일반 PostgreSQL VIEW 설계다. 저장 테이블·물리화 뷰·새 ETL 적재를 생성하지 않는다.",
+    "객체 뷰의 FK와 기존 연결 원본을 재사용한다. 조립이 필요한 관계만 공용 연결 뷰를 둔다. 역방향은 같은 엣지를 반대로 탐색한다.",
+    "뷰는 모든 원본 기간·판본을 보존한다. 최신·as-of 선택은 호출 조건으로 명시하고 임의 DISTINCT ON으로 감추지 않는다.",
+    "물리 컬럼명은 snake_case, 모델 속성명은 별도 대응표로 보존한다. id와 edge_id는 text다.",
+    "복합 ID는 정의의 키 순서대로 문자열 JSON 배열을 사용한다. 구성요소와 원본 키를 누락하거나 임의 hash·순번으로 대체하지 않는다.",
+    "미매핑·의미 보정 속성은 해당 PostgreSQL 타입의 NULL을 계획한다. 미완성 여부는 이 설계 메타데이터로 구별하며 업무 객체에 운영 상태를 추가하지 않는다.",
+    "관계는 존재하는 출발·도착 객체만 연결한다. NULL·미매칭·다중 매칭은 별도 검증 집계로 남기며 0건과 구현 실패를 구별한다.",
+    "정의된 N:1 매칭이 여러 대상을 찾으면 검증 실패다. 첫 행 선택이나 DISTINCT로 숨기지 않는다.",
+    "숫자는 원본 스케일의 numeric, 날짜는 date, 시각은 원본 timestamp 타입을 보존한다. 단위·시간대를 뷰에서 추측해 바꾸지 않는다.",
+    "계산 입력·기타 복잡 관계는 명시한 해소 규칙이 검증된 뒤에만 구현한다. 이 화면은 DDL 생성기나 DB 반영 화면이 아니다."
+  ],
+  "issues": [
+    {
+      "id": "market_cap",
+      "title": "시가총액의 단위·대상·기준일",
+      "category": "의미 확인",
+      "question": "금액이 원 단위인지 배율이 있는지, 회사 전체인지 해당 주식 종류인지, snapshot 날짜가 실제 평가일인지 확인되지 않았다.",
+      "proposal": "금액·통화·대상·평가일은 확정 전 typed NULL로 설계한다. 원본 값은 원본 매핑에서 추적한다.",
+      "objects": [
+        "MarketCapitalization"
+      ]
+    },
+    {
+      "id": "event_state",
+      "title": "사건 묶음의 현재 상태",
+      "category": "구현 보정",
+      "question": "모델의 의미는 사건의 최신 알려진 단계와 그 상태가 알려진 시각으로 정해져 있다. 현재 원본의 단계 순번 갱신과 최근 연결 시각은 정정·취소·뒤늦은 도착을 충분히 반영하지 못한다.",
+      "proposal": "두 속성은 원본 산출 규칙을 보정·검증하기 전 typed NULL. 의미를 사용자에게 다시 선택하게 하지 않고 기존 모델에 맞춰 구현을 보정한다.",
+      "objects": [
+        "EventThread"
+      ]
+    },
+    {
+      "id": "segment_basis",
+      "title": "사업부문 수치의 기간·회계 범위·분모",
+      "category": "원본 부족",
+      "question": "자유형 기간으로는 기간 시작/끝, 연결/별도, 비중의 분모를 확정할 수 없다.",
+      "proposal": "원문 수치는 보존하고 미확정 기준 속성은 typed NULL. 비교·비중 재계산의 사용 가능 여부를 별도 판정한다.",
+      "objects": [
+        "ReportedBusinessSegment"
+      ]
+    },
+    {
+      "id": "calculation_inputs",
+      "title": "계산값의 정확한 입력 참조",
+      "category": "구현 확인",
+      "question": "계산 inputs의 항목 중 어떤 것이 FinancialMetric으로 해소되는지와 정확한 기간·회계 범위·판본 대응이 미구현이다.",
+      "proposal": "CalculatedFrom은 blocked. 빈 관계 뷰로 구현 완료를 가장하지 않는다. 해소 가능한 입력과 외부 원천 입력을 구분한 계약이 필요하다.",
+      "objects": [
+        "FinancialMetric"
+      ]
+    },
+    {
+      "id": "benchmark",
+      "title": "ETF 벤치마크 연결",
+      "category": "데이터 없음",
+      "question": "감사에서 ETF 40개의 연결 값이 모두 NULL이고 INDEX 행이 0개였다.",
+      "proposal": "현재 모델대로 빈 결과를 허용하되 미적재 사실을 표시한다. 상품명에서 지수를 추정하지 않는다.",
+      "objects": [
+        "ETF",
+        "MarketIndex"
+      ]
+    },
+    {
+      "id": "intraday_time",
+      "title": "장중 수급의 실제 관측 시각",
+      "category": "원본 부족",
+      "question": "원본의 보고 슬롯 코드만으로 실제 관측 시각을 결정할 수 없다.",
+      "proposal": "estimateAsOf는 typed NULL. 슬롯과 거래일은 원본대로 유지한다.",
+      "objects": [
+        "IntradayInvestorFlow"
+      ]
+    },
+    {
+      "id": "classification_time",
+      "title": "산업분류의 실제 적용일",
+      "category": "원본 부족",
+      "question": "수집 스냅샷 날짜와 분류 유효 시작일은 다를 수 있다.",
+      "proposal": "effectiveFrom은 typed NULL. 과거 스냅샷을 유효 기간으로 확장하지 않는다.",
+      "objects": [
+        "SecurityIndustryClassification"
+      ]
+    },
+    {
+      "id": "daily_ohlc",
+      "title": "일봉 시가·고가·저가",
+      "category": "사용자 후속",
+      "question": "현재 DB에는 종가 등은 있으나 모델의 시가·고가·저가 연결이 없다.",
+      "proposal": "사용자 지시대로 후속. 세 가격은 typed NULL이며 종가를 복제하지 않는다.",
+      "objects": [
+        "DailyBar"
+      ]
+    },
+    {
+      "id": "holding_version",
+      "title": "보유 구성종목의 기준일과 이력 범위",
+      "category": "현재 범위 확정",
+      "question": "현재 객체는 특정 기준일에 ETF가 보유한 구성종목 한 건이다. 키는 ETF·구성종목·거래일이며 같은 날의 수집 판본은 구분하지 않는다.",
+      "proposal": "현재 모델대로 날짜별 보유 구성종목과 비중을 제공한다. 동일 날짜의 수정 전후 이력 보존은 이번 구현 요건이 아니며 사용자 결정 대기 사항으로 두지 않는다.",
+      "objects": [
+        "ETFHolding"
+      ]
+    },
+    {
+      "id": "id_encoding",
+      "title": "복합 ID의 정확한 문자열 인코딩",
+      "category": "구현 검증",
+      "question": "jsonStringArray에는 키 순서·문자열 타입·날짜 형식·구분 공백 차이가 영향을 준다. PostgreSQL JSON 기본 텍스트와 기존 ID가 같은지 확인이 필요하다.",
+      "proposal": "현재 인코딩을 유지하고 기존 미리보기와 바이트 단위 대조 후 SQL에 적용한다. 타입별 ID 공간을 분리한다.",
+      "objects": []
+    }
+  ],
+  "objects": {
+    "Company": {
+      "viewName": "ontology_view.company",
+      "grain": "주식과 구별되는 회사 한 곳. 회사의 원본 actor_id를 유지한다.",
+      "issues": [],
+      "referenceColumns": []
+    },
+    "Concept": {
+      "viewName": "ontology_view.concept",
+      "grain": "원본 개념 등록부의 개념 한 건. 회사·종목과 합치지 않는다.",
+      "issues": [],
+      "referenceColumns": []
+    },
+    "DailyBar": {
+      "viewName": "ontology_view.daily_bar",
+      "grain": "증권 하나의 거래일 하루 일봉. 가격과 거래량은 같은 원본 행을 사용한다.",
+      "issues": [
+        "daily_ohlc",
+        "id_encoding"
+      ],
+      "referenceColumns": [
+        {
+          "column": "security_type",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Concrete security type with an existing Equity or ETF profile; NULL when neither object exists. Used only for graph endpoint selection.",
+          "valuePolicy": "resolved_reference",
+          "source": {
+            "kind": "endpointType",
+            "referenceColumn": "instrument_id"
+          }
+        },
+        {
+          "column": "open_price_decimal_text",
+          "type": "text",
+          "description": "Exact decimal transport for graph clients; parse as Decimal for calculations.",
+          "viewNullable": true
+        },
+        {
+          "column": "high_price_decimal_text",
+          "type": "text",
+          "description": "Exact decimal transport for graph clients; parse as Decimal for calculations.",
+          "viewNullable": true
+        },
+        {
+          "column": "low_price_decimal_text",
+          "type": "text",
+          "description": "Exact decimal transport for graph clients; parse as Decimal for calculations.",
+          "viewNullable": true
+        },
+        {
+          "column": "close_price_decimal_text",
+          "type": "text",
+          "description": "Exact decimal transport for graph clients; parse as Decimal for calculations.",
+          "viewNullable": true
+        },
+        {
+          "column": "adjusted_close_price_decimal_text",
+          "type": "text",
+          "description": "Exact decimal transport for graph clients; parse as Decimal for calculations.",
+          "viewNullable": true
+        },
+        {
+          "column": "turnover_value_decimal_text",
+          "type": "text",
+          "description": "Exact decimal transport for graph clients; parse as Decimal for calculations.",
+          "viewNullable": true
+        }
+      ],
+      "graphValueEncodings": {
+        "openPrice": {
+          "encoding": "decimal_text",
+          "column": "open_price_decimal_text",
+          "modelType": "Decimal"
+        },
+        "highPrice": {
+          "encoding": "decimal_text",
+          "column": "high_price_decimal_text",
+          "modelType": "Decimal"
+        },
+        "lowPrice": {
+          "encoding": "decimal_text",
+          "column": "low_price_decimal_text",
+          "modelType": "Decimal"
+        },
+        "closePrice": {
+          "encoding": "decimal_text",
+          "column": "close_price_decimal_text",
+          "modelType": "Decimal"
+        },
+        "adjustedClosePrice": {
+          "encoding": "decimal_text",
+          "column": "adjusted_close_price_decimal_text",
+          "modelType": "Decimal"
+        },
+        "turnoverValue": {
+          "encoding": "decimal_text",
+          "column": "turnover_value_decimal_text",
+          "modelType": "Decimal"
+        }
+      }
+    },
+    "DailyInvestorFlow": {
+      "viewName": "ontology_view.daily_investor_flow",
+      "grain": "증권 하나의 거래일별 확정 투자자 수급 기록.",
+      "issues": [
+        "id_encoding"
+      ],
+      "referenceColumns": [
+        {
+          "column": "security_type",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Concrete security type with an existing Equity or ETF profile; NULL when neither object exists. Used only for graph endpoint selection.",
+          "valuePolicy": "resolved_reference",
+          "source": {
+            "kind": "endpointType",
+            "referenceColumn": "instrument_id"
+          }
+        }
+      ]
+    },
+    "DailyNAV": {
+      "viewName": "ontology_view.daily_nav",
+      "grain": "ETF 하나의 거래일별 순자산가치 관측.",
+      "issues": [
+        "id_encoding"
+      ],
+      "referenceColumns": [
+        {
+          "column": "nav_decimal_text",
+          "type": "text",
+          "description": "Exact decimal transport for graph clients; parse as Decimal for calculations.",
+          "viewNullable": false
+        }
+      ],
+      "graphValueEncodings": {
+        "nav": {
+          "encoding": "decimal_text",
+          "column": "nav_decimal_text",
+          "modelType": "Decimal"
+        }
+      }
+    },
+    "Disclosure": {
+      "viewName": "ontology_view.disclosure",
+      "grain": "개별 공시 문서 한 건. 회사와 문서 원본 ID를 유지한다.",
+      "issues": [],
+      "referenceColumns": []
+    },
+    "Equity": {
+      "viewName": "ontology_view.equity",
+      "grain": "발행회사와 별도로 식별되는 개별 주식 종목.",
+      "issues": [],
+      "referenceColumns": []
+    },
+    "ETF": {
+      "viewName": "ontology_view.etf",
+      "grain": "ETF 상품 한 종목. 현재 적재된 상품만 반환한다.",
+      "issues": [
+        "benchmark"
+      ],
+      "referenceColumns": [
+        {
+          "column": "benchmark_index_id",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Referenced market series ID only when an INDEX object exists; no inferred benchmark.",
+          "valuePolicy": "resolved_reference",
+          "source": {
+            "kind": "resolvedReference",
+            "sourceProperty": "trackingMarketSeriesId"
+          }
+        }
+      ]
+    },
+    "ETFHolding": {
+      "viewName": "ontology_view.etf_holding",
+      "grain": "특정 기준일에 ETF가 보유한 구성종목 하나와 그 비중. ETF·구성종목·거래일로 식별하며 편입·편출 사건을 뜻하지 않는다.",
+      "issues": [
+        "holding_version",
+        "id_encoding"
+      ],
+      "referenceColumns": [
+        {
+          "column": "security_type",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Concrete security type with an existing Equity or ETF profile; NULL when neither object exists. Used only for graph endpoint selection.",
+          "valuePolicy": "resolved_reference",
+          "source": {
+            "kind": "endpointType",
+            "referenceColumn": "constituent_instrument_id"
+          }
+        }
+      ]
+    },
+    "EventThread": {
+      "viewName": "ontology_view.event_thread",
+      "grain": "같은 사건으로 묶은 원본 사건 묶음 한 건. 확정 상태 전이를 임의 계산하지 않는다.",
+      "issues": [
+        "event_state"
+      ],
+      "referenceColumns": []
+    },
+    "ExchangeSecurityClassification": {
+      "viewName": "ontology_view.exchange_security_classification",
+      "grain": "시장·종목코드·기준일·수집 판본별 거래소 분류 관측.",
+      "issues": [
+        "id_encoding"
+      ],
+      "referenceColumns": [
+        {
+          "column": "security_id",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Resolve market and instrument code to one security ID. Preserve classification date and raw run; do not select an arbitrary match.",
+          "valuePolicy": "resolved_reference",
+          "source": {
+            "kind": "resolvedReference",
+            "acceptance": "Resolve market and instrument code to one security ID. Preserve classification date and raw run; do not select an arbitrary match."
+          }
+        },
+        {
+          "column": "security_type",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Concrete security type with an existing Equity or ETF profile; NULL when neither object exists. Used only for graph endpoint selection.",
+          "valuePolicy": "resolved_reference",
+          "source": {
+            "kind": "endpointType",
+            "referenceColumn": "security_id"
+          }
+        }
+      ]
+    },
+    "FinancialMetric": {
+      "viewName": "ontology_view.financial_metric",
+      "grain": "회사·연도·재무기간·지표·누적/분기·연결/별도·수집 판본의 수치 한 건.",
+      "issues": [
+        "calculation_inputs",
+        "id_encoding"
+      ],
+      "referenceColumns": [
+        {
+          "column": "company_id",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Resolve corp_code to exactly one Company.dartCorpCode and return Company.id; multiple matches fail validation.",
+          "valuePolicy": "resolved_reference",
+          "source": {
+            "kind": "resolvedReference",
+            "acceptance": "Resolve corp_code to exactly one Company.dartCorpCode and return Company.id; multiple matches fail validation."
+          }
+        },
+        {
+          "column": "reporting_context_id",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Match company, fiscal year, statement basis, raw run and report code; check receipt-number consistency when present. Require exactly one report. Preserve calculationInputs separately for derived values.",
+          "valuePolicy": "resolved_reference",
+          "source": {
+            "kind": "resolvedReference",
+            "acceptance": "Match company, fiscal year, statement basis, raw run and report code; check receipt-number consistency when present. Require exactly one report. Preserve calculationInputs separately for derived values."
+          }
+        },
+        {
+          "column": "reported_snapshot_id",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Only REPORTED values qualify. Match receipt number, company, fiscal year, report type, statement basis, and collection run to exactly one snapshot.",
+          "valuePolicy": "resolved_reference",
+          "source": {
+            "kind": "resolvedReference",
+            "acceptance": "Only REPORTED values qualify. Match receipt number, company, fiscal year, report type, statement basis, and collection run to exactly one snapshot."
+          }
+        },
+        {
+          "column": "value_decimal_text",
+          "type": "text",
+          "description": "Exact decimal transport for graph clients; parse as Decimal for calculations.",
+          "viewNullable": false
+        }
+      ],
+      "graphValueEncodings": {
+        "value": {
+          "encoding": "decimal_text",
+          "column": "value_decimal_text",
+          "modelType": "Decimal"
+        }
+      }
+    },
+    "FinancialReportSnapshot": {
+      "viewName": "ontology_view.financial_report_snapshot",
+      "grain": "회사·연도·보고서 종류·연결/별도·수집 실행별 보고서 수집본. 문서 자체와 다르다.",
+      "issues": [
+        "id_encoding"
+      ],
+      "referenceColumns": [
+        {
+          "column": "company_id",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Resolve corp_code to exactly one Company.dartCorpCode and return Company.id; multiple matches fail validation.",
+          "valuePolicy": "resolved_reference",
+          "source": {
+            "kind": "resolvedReference",
+            "acceptance": "Resolve corp_code to exactly one Company.dartCorpCode and return Company.id; multiple matches fail validation."
+          }
+        }
+      ]
+    },
+    "IntradayInvestorFlow": {
+      "viewName": "ontology_view.intraday_investor_flow",
+      "grain": "종목·거래일·원본 보고 슬롯별 장중 수급 기록. 슬롯을 실제 관측 시각으로 바꾸지 않는다.",
+      "issues": [
+        "intraday_time",
+        "id_encoding"
+      ],
+      "referenceColumns": [
+        {
+          "column": "security_type",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Concrete security type with an existing Equity or ETF profile; NULL when neither object exists. Used only for graph endpoint selection.",
+          "valuePolicy": "resolved_reference",
+          "source": {
+            "kind": "endpointType",
+            "referenceColumn": "instrument_id"
+          }
+        }
+      ]
+    },
+    "MacroObservation": {
+      "viewName": "ontology_view.macro_observation",
+      "grain": "거시 지표·관측일·수집 판본별 관측 한 건. 분류 lookup은 명시된 키에만 적용한다.",
+      "issues": [
+        "id_encoding"
+      ],
+      "referenceColumns": [
+        {
+          "column": "value_decimal_text",
+          "type": "text",
+          "description": "Exact decimal transport for graph clients; parse as Decimal for calculations.",
+          "viewNullable": false
+        }
+      ],
+      "graphValueEncodings": {
+        "value": {
+          "encoding": "decimal_text",
+          "column": "value_decimal_text",
+          "modelType": "Decimal"
+        }
+      }
+    },
+    "MarketCapitalization": {
+      "viewName": "ontology_view.market_capitalization",
+      "grain": "증권·원본 스냅샷 날짜별 시장가치 기록. 금액의 단위·대상·실제 평가일은 아직 미확정.",
+      "issues": [
+        "market_cap",
+        "id_encoding"
+      ],
+      "referenceColumns": [
+        {
+          "column": "security_type",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Concrete security type with an existing Equity or ETF profile; NULL when neither object exists. Used only for graph endpoint selection.",
+          "valuePolicy": "resolved_reference",
+          "source": {
+            "kind": "endpointType",
+            "referenceColumn": "instrument_id"
+          }
+        },
+        {
+          "column": "amount_decimal_text",
+          "type": "text",
+          "description": "Exact decimal transport for graph clients; parse as Decimal for calculations.",
+          "viewNullable": true
+        }
+      ],
+      "graphValueEncodings": {
+        "amount": {
+          "encoding": "decimal_text",
+          "column": "amount_decimal_text",
+          "modelType": "Decimal"
+        }
+      }
+    },
+    "MarketIndex": {
+      "viewName": "ontology_view.market_index",
+      "grain": "series_type=INDEX인 시장 지수 정의 한 건. 데이터 0건을 임의 지수로 채우지 않는다.",
+      "issues": [
+        "benchmark"
+      ],
+      "referenceColumns": []
+    },
+    "NewsArticle": {
+      "viewName": "ontology_view.news_article",
+      "grain": "원본 뉴스 문서 한 건. 대표 기사와 개별 기사 ID를 구별한다.",
+      "issues": [],
+      "referenceColumns": []
+    },
+    "Organization": {
+      "viewName": "ontology_view.organization",
+      "grain": "actor_type이 GOVERNMENT 또는 INSTITUTION인 행위자 한 곳. Company와 구분한다.",
+      "issues": [],
+      "referenceColumns": []
+    },
+    "ReportedBusinessSegment": {
+      "viewName": "ontology_view.reported_business_segment",
+      "grain": "공시에서 추출한 개별 사업부문 수치 기록. 독립 사업부 법인이나 공시 문서 자체가 아니다.",
+      "issues": [
+        "segment_basis"
+      ],
+      "referenceColumns": [
+        {
+          "column": "revenue_krw_decimal_text",
+          "type": "text",
+          "description": "Exact decimal transport for graph clients; parse as Decimal for calculations.",
+          "viewNullable": true
+        },
+        {
+          "column": "revenue_total_krw_decimal_text",
+          "type": "text",
+          "description": "Exact decimal transport for graph clients; parse as Decimal for calculations.",
+          "viewNullable": true
+        }
+      ],
+      "graphValueEncodings": {
+        "revenueKrw": {
+          "encoding": "decimal_text",
+          "column": "revenue_krw_decimal_text",
+          "modelType": "Decimal"
+        },
+        "revenueTotalKrw": {
+          "encoding": "decimal_text",
+          "column": "revenue_total_krw_decimal_text",
+          "modelType": "Decimal"
+        }
+      }
+    },
+    "SecurityIndustryClassification": {
+      "viewName": "ontology_view.security_industry_classification",
+      "grain": "증권·스냅샷 날짜별 산업 분류 관측. 스냅샷 날짜를 적용 시작일로 사용하지 않는다.",
+      "issues": [
+        "classification_time",
+        "id_encoding"
+      ],
+      "referenceColumns": [
+        {
+          "column": "security_type",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Concrete security type with an existing Equity or ETF profile; NULL when neither object exists. Used only for graph endpoint selection.",
+          "valuePolicy": "resolved_reference",
+          "source": {
+            "kind": "endpointType",
+            "referenceColumn": "instrument_id"
+          }
+        }
+      ]
+    },
+    "SecurityListingSnapshot": {
+      "viewName": "ontology_view.security_listing_snapshot",
+      "grain": "증권·스냅샷 날짜별 상장시장과 주식종류 관측.",
+      "issues": [
+        "id_encoding"
+      ],
+      "referenceColumns": [
+        {
+          "column": "security_type",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Concrete security type with an existing Equity or ETF profile; NULL when neither object exists. Used only for graph endpoint selection.",
+          "valuePolicy": "resolved_reference",
+          "source": {
+            "kind": "endpointType",
+            "referenceColumn": "instrument_id"
+          }
+        }
+      ]
+    },
+    "SourceEvent": {
+      "viewName": "ontology_view.source_event",
+      "grain": "원문에서 식별한 사건 계정 한 건. 사건 묶음과 구별하며 참여 역할은 관계 뷰에 둔다.",
+      "issues": [],
+      "referenceColumns": []
+    }
+  },
+  "relations": {
+    "Company_HasDisclosure_Disclosure": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "Disclosure",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "issuer_id",
+        "toColumn": "id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "Company_Issues_Equity": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "Equity",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "issuer_id",
+        "toColumn": "id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "Company_ParticipatesIn_SourceEvent": {
+      "readiness": "proposal",
+      "rowPolicy": "preserve_source_records",
+      "grain": "원본 관계 기록 하나. 같은 두 객체 사이의 서로 다른 역할·근거 기록을 보존한다.",
+      "issues": [],
+      "edgeIdentity": [
+        "event_argument_id"
+      ],
+      "physicalMapping": {
+        "kind": "connection_view",
+        "source": "ActorParticipation",
+        "edgeIdColumns": [
+          "participation_id"
+        ],
+        "fromColumn": "actor_id",
+        "toColumn": "source_event_id",
+        "filters": {
+          "actor_type": [
+            "COMPANY"
+          ]
+        },
+        "properties": {
+          "roleCode": "role_code",
+          "mentionedName": "mentioned_name"
+        },
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "Concept_HasParentConcept_Concept": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "Concept",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "parent_concept_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "DailyBar_ForSecurity_Equity": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "DailyBar",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "instrument_id",
+        "filters": {
+          "security_type": [
+            "EQUITY"
+          ]
+        },
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "DailyBar_ForSecurity_ETF": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "DailyBar",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "instrument_id",
+        "filters": {
+          "security_type": [
+            "ETF"
+          ]
+        },
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "DailyInvestorFlow_ForSecurity_Equity": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "DailyInvestorFlow",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "instrument_id",
+        "filters": {
+          "security_type": [
+            "EQUITY"
+          ]
+        },
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "DailyInvestorFlow_ForSecurity_ETF": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "DailyInvestorFlow",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "instrument_id",
+        "filters": {
+          "security_type": [
+            "ETF"
+          ]
+        },
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "DailyNAV_ForETF_ETF": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "DailyNAV",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "etf_instrument_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "Disclosure_DescribesEvent_SourceEvent": {
+      "readiness": "proposal",
+      "rowPolicy": "preserve_source_records",
+      "grain": "원본 관계 기록 하나. 같은 두 객체 사이의 서로 다른 역할·근거 기록을 보존한다.",
+      "issues": [],
+      "edgeIdentity": [
+        "evidence_id"
+      ],
+      "physicalMapping": {
+        "kind": "connection_view",
+        "source": "DocumentEventEvidence",
+        "edgeIdColumns": [
+          "evidence_id"
+        ],
+        "fromColumn": "document_id",
+        "toColumn": "source_event_id",
+        "filters": {
+          "document_type": [
+            "DISCLOSURE"
+          ]
+        },
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "ETF_HasTheme_Concept": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "ETF",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "primary_theme_concept_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "ETF_Tracks_MarketIndex": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [
+        "benchmark"
+      ],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "resolved_fk",
+        "source": "ETF",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "benchmark_index_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "ETFHolding_ForETF_ETF": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "ETFHolding",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "etf_instrument_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "ETFHolding_HoldsSecurity_Equity": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "ETFHolding",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "constituent_instrument_id",
+        "filters": {
+          "security_type": [
+            "EQUITY"
+          ]
+        },
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "ETFHolding_HoldsSecurity_ETF": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "ETFHolding",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "constituent_instrument_id",
+        "filters": {
+          "security_type": [
+            "ETF"
+          ]
+        },
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "ExchangeSecurityClassification_ForSecurity_Equity": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "resolved_fk",
+        "source": "ExchangeSecurityClassification",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "security_id",
+        "filters": {
+          "security_type": [
+            "EQUITY"
+          ]
+        },
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "ExchangeSecurityClassification_ForSecurity_ETF": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "resolved_fk",
+        "source": "ExchangeSecurityClassification",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "security_id",
+        "filters": {
+          "security_type": [
+            "ETF"
+          ]
+        },
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "FinancialMetric_CalculatedFrom_FinancialMetric": {
+      "readiness": "blocked",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [
+        "calculation_inputs"
+      ],
+      "edgeIdentity": [
+        "UNRESOLVED_INPUT_REFERENCE"
+      ],
+      "physicalMapping": {
+        "kind": "blocked",
+        "reason": "Exact input metric and version resolution is not implemented."
+      }
+    },
+    "FinancialMetric_ForCompany_Company": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "resolved_fk",
+        "source": "FinancialMetric",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "company_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "FinancialMetric_HasReportingContext_FinancialReportSnapshot": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "resolved_fk",
+        "source": "FinancialMetric",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "reporting_context_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "FinancialMetric_ReportedIn_FinancialReportSnapshot": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "resolved_fk",
+        "source": "FinancialMetric",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "reported_snapshot_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "FinancialReportSnapshot_ForCompany_Company": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "resolved_fk",
+        "source": "FinancialReportSnapshot",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "company_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "IntradayInvestorFlow_ForEquity_Equity": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "IntradayInvestorFlow",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "instrument_id",
+        "filters": {
+          "security_type": [
+            "EQUITY"
+          ]
+        },
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "MarketCapitalization_ForSecurity_Equity": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "MarketCapitalization",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "instrument_id",
+        "filters": {
+          "security_type": [
+            "EQUITY"
+          ]
+        },
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "MarketCapitalization_ForSecurity_ETF": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "MarketCapitalization",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "instrument_id",
+        "filters": {
+          "security_type": [
+            "ETF"
+          ]
+        },
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "NewsArticle_DescribesEvent_SourceEvent": {
+      "readiness": "proposal",
+      "rowPolicy": "preserve_source_records",
+      "grain": "원본 관계 기록 하나. 같은 두 객체 사이의 서로 다른 역할·근거 기록을 보존한다.",
+      "issues": [],
+      "edgeIdentity": [
+        "evidence_id"
+      ],
+      "physicalMapping": {
+        "kind": "connection_view",
+        "source": "DocumentEventEvidence",
+        "edgeIdColumns": [
+          "evidence_id"
+        ],
+        "fromColumn": "document_id",
+        "toColumn": "source_event_id",
+        "filters": {
+          "document_type": [
+            "NEWS"
+          ]
+        },
+        "properties": {
+          "extractionConfidence": "extraction_confidence"
+        },
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "NewsArticle_HasRepresentativeArticle_NewsArticle": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "NewsArticle",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "representative_document_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "NewsArticle_HasTheme_Concept": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "NewsArticle",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "theme_concept_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "NewsArticle_MentionsSecurity_Equity": {
+      "readiness": "proposal",
+      "rowPolicy": "preserve_source_records",
+      "grain": "원본 관계 기록 하나. 같은 두 객체 사이의 서로 다른 역할·근거 기록을 보존한다.",
+      "issues": [],
+      "edgeIdentity": [
+        "document_id",
+        "entity_id"
+      ],
+      "physicalMapping": {
+        "kind": "connection_view",
+        "source": "DocumentSecurityMention",
+        "edgeIdColumns": [
+          "document_id",
+          "entity_id"
+        ],
+        "fromColumn": "document_id",
+        "toColumn": "entity_id",
+        "filters": {
+          "link_method": [
+            "mention"
+          ]
+        },
+        "properties": {
+          "matchedText": "matched_text",
+          "linkMethod": "link_method"
+        },
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "Organization_ParticipatesIn_SourceEvent": {
+      "readiness": "proposal",
+      "rowPolicy": "preserve_source_records",
+      "grain": "원본 관계 기록 하나. 같은 두 객체 사이의 서로 다른 역할·근거 기록을 보존한다.",
+      "issues": [],
+      "edgeIdentity": [
+        "event_argument_id"
+      ],
+      "physicalMapping": {
+        "kind": "connection_view",
+        "source": "ActorParticipation",
+        "edgeIdColumns": [
+          "participation_id"
+        ],
+        "fromColumn": "actor_id",
+        "toColumn": "source_event_id",
+        "filters": {
+          "actor_type": [
+            "GOVERNMENT",
+            "INSTITUTION"
+          ]
+        },
+        "properties": {
+          "roleCode": "role_code",
+          "mentionedName": "mentioned_name"
+        },
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "ReportedBusinessSegment_DisclosedIn_Disclosure": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "ReportedBusinessSegment",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "document_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "ReportedBusinessSegment_IdentifiesSegment_Concept": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "ReportedBusinessSegment",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "concept_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "SecurityIndustryClassification_ForSecurity_Equity": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "SecurityIndustryClassification",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "instrument_id",
+        "filters": {
+          "security_type": [
+            "EQUITY"
+          ]
+        },
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "SecurityIndustryClassification_ForSecurity_ETF": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "SecurityIndustryClassification",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "instrument_id",
+        "filters": {
+          "security_type": [
+            "ETF"
+          ]
+        },
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "SecurityListingSnapshot_ForSecurity_Equity": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "SecurityListingSnapshot",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "instrument_id",
+        "filters": {
+          "security_type": [
+            "EQUITY"
+          ]
+        },
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "SecurityListingSnapshot_ForSecurity_ETF": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "정의된 조건으로 연결된 출발 객체와 도착 객체 한 쌍.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_id",
+        "target_id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "SecurityListingSnapshot",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "instrument_id",
+        "filters": {
+          "security_type": [
+            "ETF"
+          ]
+        },
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "SourceEvent_InEventThread_EventThread": {
+      "readiness": "proposal",
+      "rowPolicy": "preserve_source_records",
+      "grain": "원본 관계 기록 하나. 같은 두 객체 사이의 서로 다른 역할·근거 기록을 보존한다.",
+      "issues": [],
+      "edgeIdentity": [
+        "source_event_id"
+      ],
+      "physicalMapping": {
+        "kind": "existing_table",
+        "source": "EventThreadMembership",
+        "edgeIdColumns": [
+          "source_event_id"
+        ],
+        "fromColumn": "source_event_id",
+        "toColumn": "thread_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    }
+  },
+  "definitionHashes": {
+    "object_types/Company.yaml": "d8606699dc16ac41f19a3b80a9f52c7537d686ab2e2be69fb1a3405a542ba464",
+    "object_types/Concept.yaml": "5361ad8c3ba820b561a05162b40c3f40e8cac4e904b077042eb0c493348ea416",
+    "object_types/DailyBar.yaml": "abbdadb7f7b9c8a1b43c0efba5f43eac89393d98e5bd2dc36fc2f6a6824e3081",
+    "object_types/DailyInvestorFlow.yaml": "831266abf098ecd52a2ef7e097b34c67a999d452048976fd01f8c2eee912bd38",
+    "object_types/DailyNAV.yaml": "ca87edbb4db64fb6f080dee624efc57d6367a975de72a9c8ca148e5a3da9fffb",
+    "object_types/Disclosure.yaml": "1fc61a2801852e40451fc7116e7b02ed52dd39f2dda53ee587524d66af979e83",
+    "object_types/Equity.yaml": "0b53217a15f8d9e302411f7f49a8684d33a9792bb69f7fa6b3cdf4112f9def94",
+    "object_types/ETF.yaml": "26f3e6a5e0f1ad99cd8405bf84e1fb2f26fc603e449e5e9b6e7f05bbe39550d0",
+    "object_types/ETFHolding.yaml": "ff09068b44bfbfc4509b43ca01767e7982ddd6f823bf8ccd58c5dba64bd69114",
+    "object_types/EventThread.yaml": "6c523de462bc97766f1fa748b518397a46f3ea094358e03dc93c5f7c9d7fe466",
+    "object_types/ExchangeSecurityClassification.yaml": "fe1508d2262f54e4325f81c811f835027234d388745041d8c49c25e5f1184768",
+    "object_types/FinancialMetric.yaml": "2f1b1514b4709408d95d71f40ced5aab3bed1c5effdf8031f11a0f143abd8f24",
+    "object_types/FinancialReportSnapshot.yaml": "cb761541d96e1f321f5b309b5ba40f47189ad3066e36d786dad2ec309db9dea0",
+    "object_types/IntradayInvestorFlow.yaml": "7278891655e6ea258db97d2c879db37e36ce31275404a805a5650c5c003a0b7c",
+    "object_types/MacroObservation.yaml": "9c5b1a7c9e69256068313af6bb2aef485f0719bc612b9a4179cfc1a816e7ae67",
+    "object_types/MarketCapitalization.yaml": "7baca173999fe9615e47eafd2a84764bbfdba79a2822a8070a696c2fcef37d13",
+    "object_types/MarketIndex.yaml": "ad19cf0d8991b8260cf813146a7d5a22265e10789654843fa6b00a2eef8689bf",
+    "object_types/NewsArticle.yaml": "8c2112cf958be3105a79a1033fb226595e8770b895ac26af0ba98ce99c6a3f71",
+    "object_types/Organization.yaml": "b0c1cec2cdec481b1fc89b26d07e973261b2cc30dbd373c13af1e0fb492ac897",
+    "object_types/ReportedBusinessSegment.yaml": "617c066aa729b073d91c40e57b7d63a2029768e0781e4b9acf4c044b05dd49f6",
+    "object_types/SecurityIndustryClassification.yaml": "b905fb66454a35955c398226a8c69a9b958f4766b4f0f952ea04f3594be2a7f8",
+    "object_types/SecurityListingSnapshot.yaml": "cfbea0e4786dcd5c7261687358ae7e119fbd555154cc08e50d37c900573e947f",
+    "object_types/SourceEvent.yaml": "1abb929d49e7ffbffef8f2c0bcf9ed44057c62c55e98a724410e6ff967e059c0",
+    "link_types/Company_HasDisclosure_Disclosure.yaml": "63263ea1d49c054b6c406d50c03541997a53c6d9eb97c6a7f58898bbc40f407e",
+    "link_types/Company_Issues_Equity.yaml": "f72a506d676567db58a9d03e7582e5be2f8e3ab83c70ebe0b8b198d44745f111",
+    "link_types/Company_ParticipatesIn_SourceEvent.yaml": "70b196b0451eb85fbbe80a31d8726d0387b5cf3971f78824e3df34b69ac486e1",
+    "link_types/Concept_HasParentConcept_Concept.yaml": "11afe72995c0f03b3609c74b37a978a85fce3860397bbfa8ba4904fcc61bfb36",
+    "link_types/DailyBar_ForSecurity_Equity.yaml": "9751cfe87ac190105987aa8997a5d36387649ef6bbca4dccdf0db6bef2f1ef71",
+    "link_types/DailyBar_ForSecurity_ETF.yaml": "07b065957f279e8ae5327b9ec7f1d1dd9d0ea5ba77ee020f99a16a7981e145f8",
+    "link_types/DailyInvestorFlow_ForSecurity_Equity.yaml": "1b0f4e24f48e75141552c6d23160d4ea2cd1dcc337ddbd2aef7d856f1920af6b",
+    "link_types/DailyInvestorFlow_ForSecurity_ETF.yaml": "357a106bc4c03eefbd12fdf2b37c65acfc889e10e22cad5ad1dc3e54fbc7a0d5",
+    "link_types/DailyNAV_ForETF_ETF.yaml": "d0d444a265ca05738413ad3e3f07437ce7198f30ba5f6b9c3fa3f5faa9a444ca",
+    "link_types/Disclosure_DescribesEvent_SourceEvent.yaml": "95d09c23e7deb5c9cca834c368dfa26dfd846b5b82906649e07792dbe8c6eb59",
+    "link_types/ETF_HasTheme_Concept.yaml": "f8389cb786bb5f5d2c705431e3801ebc9c79408a02d452ff57e5547d6e3748f5",
+    "link_types/ETF_Tracks_MarketIndex.yaml": "148a4323d89707d20987746dbb277df6ef6cfac8f84a373be6b04e1b0966db60",
+    "link_types/ETFHolding_ForETF_ETF.yaml": "f4f8e9e3e3e62745712f56cc797e9ebae0cc7a749a6133215444a92ffb947f93",
+    "link_types/ETFHolding_HoldsSecurity_Equity.yaml": "8e55405371a9ac3e3b4a9af3131059385ef078fbebfb655bdbf1d1826d66a714",
+    "link_types/ETFHolding_HoldsSecurity_ETF.yaml": "dc1dba83037d5d97eb60ace15ffacd026cb66599ca76f49ab4d67309f8c7ca76",
+    "link_types/ExchangeSecurityClassification_ForSecurity_Equity.yaml": "455b7c3d80ac0c75e9dbe67b1bf03a870681f41bbb6a2eeb5ad06212920ced4c",
+    "link_types/ExchangeSecurityClassification_ForSecurity_ETF.yaml": "5c8c07aa4dad5dd9716d5f7a1aeeceb6af170624032c281c1eeb2794b2f61137",
+    "link_types/FinancialMetric_CalculatedFrom_FinancialMetric.yaml": "4cf2fed515eba653e93dc685ee9ed248720ee67b6f35a15d515bc6a7ef723f51",
+    "link_types/FinancialMetric_ForCompany_Company.yaml": "5a7433887d162124b64d2e39064be30b36546dec6cba002e3df53ee69b5d88d9",
+    "link_types/FinancialMetric_HasReportingContext_FinancialReportSnapshot.yaml": "01349ae66dcb5ffbe10635c1c3dd033a2885c18ec9859b5121589d1dc0d81d00",
+    "link_types/FinancialMetric_ReportedIn_FinancialReportSnapshot.yaml": "4078aabf13b59f4cb7f3e4425a2b8e3c16b40c2a5ac693e043fcc3195d3eaf6e",
+    "link_types/FinancialReportSnapshot_ForCompany_Company.yaml": "b1cd1f527bcdfd8b03630e7808cbaf1f0c2179dbdfe39bcb1601efea71c68c73",
+    "link_types/IntradayInvestorFlow_ForEquity_Equity.yaml": "35e37f501861bfa4e9db4d878cc5adda3aa056a99581670f21a48ae3b1a235fc",
+    "link_types/MarketCapitalization_ForSecurity_Equity.yaml": "40b2f8e4953a763e57cf97c1f4d346ac4a6c418662646ff58362f3e5ed45858c",
+    "link_types/MarketCapitalization_ForSecurity_ETF.yaml": "946091ce47903d0384acb75171bd5f4043a5c15bfb6464f17f629d3cb223c29b",
+    "link_types/NewsArticle_DescribesEvent_SourceEvent.yaml": "b254b6005cda0543d50642c82a561ea933e2339bfebaa6bb12568244b52fe299",
+    "link_types/NewsArticle_HasRepresentativeArticle_NewsArticle.yaml": "4cd91192b81eadec8db9c5074d40ec78389e4c0ec000ff47045da5b939483af5",
+    "link_types/NewsArticle_HasTheme_Concept.yaml": "492a300235a490c0587a11cd89bec2ca9054d224138178f302b580abdf021e58",
+    "link_types/NewsArticle_MentionsSecurity_Equity.yaml": "c7f77eabfed88de09b72b01d50a111c48c7f379f41715eaf9e03b8601a598756",
+    "link_types/Organization_ParticipatesIn_SourceEvent.yaml": "3cc441d01bd52f3fb32760796a9ced464c0885e5b4f44ff2a1e18e0e86fe1c3d",
+    "link_types/ReportedBusinessSegment_DisclosedIn_Disclosure.yaml": "763f1ab6767f752df92cab73482c7a6eea6beb35b252e0fc27c2a9f7d7b5d45f",
+    "link_types/ReportedBusinessSegment_IdentifiesSegment_Concept.yaml": "ba66e12303c1f412914ff4b9ebc3db7855c23f5f8dea75c92bd0b021a8c3eee1",
+    "link_types/SecurityIndustryClassification_ForSecurity_Equity.yaml": "f7acfcb23904d65c27c7f1a2b51df6219c03e563aa6c1a3b961d4cc0dd718baf",
+    "link_types/SecurityIndustryClassification_ForSecurity_ETF.yaml": "e1a6e674a1b542d818d80e70c1ea9eefddb409bb4a24d6ac004f0a025a0e3221",
+    "link_types/SecurityListingSnapshot_ForSecurity_Equity.yaml": "9b48cde5de7c9736082cff496d3a212d647172262ae21abb51d0d88ccaec8b6d",
+    "link_types/SecurityListingSnapshot_ForSecurity_ETF.yaml": "b2b445eac263bfa6909ce05fd47ae01794662d09391e7e519bde6b04c4d9072f",
+    "link_types/SourceEvent_InEventThread_EventThread.yaml": "86773d154b9c261330fb1ed6fda6f3701bae812e149309d3ff9958ab5ff81343"
+  },
+  "physicalSources": {
+    "ActorParticipation": {
+      "viewName": "ontology_view.actor_participation",
+      "kind": "connection_view",
+      "grain": "One stored actor participation and role in a source event; not a business object.",
+      "primaryKey": [
+        "participation_id"
+      ],
+      "columns": [
+        {
+          "column": "participation_id",
+          "type": "text",
+          "viewNullable": false,
+          "description": "Original event_argument identifier."
+        },
+        {
+          "column": "actor_id",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Participating actor identifier."
+        },
+        {
+          "column": "source_event_id",
+          "type": "text",
+          "viewNullable": false,
+          "description": "Source event identifier."
+        },
+        {
+          "column": "actor_type",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Actor type with an existing concrete Company or Organization object; NULL for other or unresolved endpoints."
+        },
+        {
+          "column": "role_code",
+          "type": "text",
+          "viewNullable": false,
+          "description": "Role of this actor in this event."
+        },
+        {
+          "column": "mentioned_name",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Name recorded in the source mention."
+        }
+      ],
+      "sourceTables": [
+        "event_argument",
+        "actor"
+      ]
+    },
+    "DocumentEventEvidence": {
+      "viewName": "ontology_view.document_event_evidence",
+      "kind": "connection_view",
+      "grain": "One evidence record connecting a source document to a source event.",
+      "primaryKey": [
+        "evidence_id"
+      ],
+      "columns": [
+        {
+          "column": "evidence_id",
+          "type": "text",
+          "viewNullable": false,
+          "description": "Original evidence identifier."
+        },
+        {
+          "column": "document_id",
+          "type": "text",
+          "viewNullable": false,
+          "description": "Source document identifier."
+        },
+        {
+          "column": "source_event_id",
+          "type": "text",
+          "viewNullable": false,
+          "description": "Source event identifier."
+        },
+        {
+          "column": "document_type",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Document type with an existing concrete news or disclosure profile; NULL for an unresolved document object."
+        },
+        {
+          "column": "extraction_confidence",
+          "type": "double precision",
+          "viewNullable": true,
+          "description": "Self-reported extraction confidence, not event truth."
+        }
+      ],
+      "sourceTables": [
+        "event_evidence",
+        "document_assertion",
+        "document"
+      ]
+    },
+    "DocumentSecurityMention": {
+      "viewName": "ontology_view.document_security_mention",
+      "kind": "connection_view",
+      "grain": "One stored document to entity match. Only mention matches to equities supply this link.",
+      "primaryKey": [
+        "document_id",
+        "entity_id"
+      ],
+      "columns": [
+        {
+          "column": "document_id",
+          "type": "text",
+          "viewNullable": false,
+          "description": "Document identifier."
+        },
+        {
+          "column": "entity_id",
+          "type": "text",
+          "viewNullable": false,
+          "description": "Mentioned entity identifier."
+        },
+        {
+          "column": "link_method",
+          "type": "text",
+          "viewNullable": false,
+          "description": "Stored matching method."
+        },
+        {
+          "column": "matched_text",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Matched source text."
+        }
+      ],
+      "sourceTables": [
+        "document_entity",
+        "news_document",
+        "equity_profile"
+      ]
+    },
+    "EventThreadMembership": {
+      "viewName": "public.event_thread_link",
+      "kind": "existing_table",
+      "grain": "One source event and its assigned thread, when resolved.",
+      "primaryKey": [
+        "source_event_id"
+      ],
+      "columns": [
+        {
+          "column": "source_event_id",
+          "type": "text",
+          "viewNullable": false,
+          "description": "Source event identifier."
+        },
+        {
+          "column": "thread_id",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Assigned event thread."
+        }
+      ],
+      "sourceTables": [
+        "event_thread_link"
+      ]
+    }
+  }
+}
