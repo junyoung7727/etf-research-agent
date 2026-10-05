@@ -26,7 +26,7 @@ def column(name, definition, source, *, identity=None):
             'description': definition.get('description', ''), 'source': copy.deepcopy(source),
             'modelNullable': definition.get('nullable', True), 'viewNullable': True if pending else definition.get('nullable', True),
             'mappingStatus': status,
-            'valuePolicy': 'typed_null_pending' if pending else 'identity_encoding' if identity else
+            'valuePolicy': 'typed_null_pending' if pending else 'view_projection' if source.get('kind')=='view_column' else 'identity_encoding' if identity else
                            'explicit_transform' if any(k in source for k in ('valueMapping', 'lookupProperty', 'valueEncoding')) else 'source_value',
             'identity': identity}
 
@@ -44,7 +44,7 @@ def build_catalog(documents, plan):
     for name, d in definitions.items():
         sm = d['sourceMapping']
         proposal = copy.deepcopy(plan['objects'][name])
-        proposal.update(id=name, description=d['description'], identity=copy.deepcopy(d['identity']),
+        proposal.update(id=name, description=d['description'], titleProperty=d['titleProperty'], identity=copy.deepcopy(d['identity']),
             sourceMapping=copy.deepcopy(sm), readiness='proposal', columns=[
                 column(n, prop, sm['properties'][n], identity=d['identity'] if n==d['primaryKey'] else None)
                 for n, prop in d['properties'].items()] + copy.deepcopy(proposal.get('referenceColumns', [])))

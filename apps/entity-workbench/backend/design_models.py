@@ -1,6 +1,7 @@
 """Bind domain definitions to a captured schema without requiring captured data rows."""
 import copy
 import json
+import re
 from pathlib import Path
 from paths import SOURCE_SCHEMA
 
@@ -24,6 +25,20 @@ def column_constraints(catalog, table, column):
     pk = catalog['primary_keys'].get(table, [])
     return dict(nullable=field['nullable'], primaryKey=pk if column in pk else [],
                 foreignKeys=[fk for fk in catalog['foreign_keys'] if fk['table'] == table and column in fk['columns']])
+
+
+def validate_view_property(source, definition, catalog):
+    """A view projection is not a column or constraint in the captured raw tables."""
+    if (source.get('schema') != 'ontology_view' or
+            any(not re.fullmatch(r'[a-z][a-z0-9_]*', source.get(k, '')) for k in ('table','column')) or
+            source.get('sqlFile') != 'sql/views/'+source['table']+'.sql' or
+            definition.get('sourceConstraints') is not None or
+            definition.get('mappingStatus') != 'ready' or
+            not source.get('inputs')):
+        raise ValueError('Invalid view projection contract')
+    for item in source['inputs']:
+        if item.get('schema') != 'public' or item.get('column') not in {c['name'] for c in catalog['schema'].get(item.get('table'), [])}:
+            raise ValueError('Unknown view projection input')
 
 
 def compile_models(documents, snapshot):
@@ -57,10 +72,15 @@ def compile_models(documents, snapshot):
         if set(doc['properties']) != set(sm['properties']):
             raise ValueError('Every property requires an explicit source mapping')
         properties = []
+        view_properties = []
         for name, definition in doc['properties'].items():
             if type(definition['nullable']) is not bool:
                 raise ValueError('A property must declare its model nullability')
             source = sm['properties'][name]
+            if source.get('kind') == 'view_column':
+                validate_view_property(source, definition, catalog)
+                view_properties.append(name)
+                continue  # The local SQLite preview contains raw tables, not live views.
             if source.get('kind') == 'unmapped':
                 if (name == 'id' or definition.get('mappingStatus') != 'unmapped' or
                         not definition.get('dataType') or definition.get('sourceConstraints') is not None or
@@ -102,6 +122,7 @@ def compile_models(documents, snapshot):
                    primaryKey=doc['primaryKey'], titleProperty=doc['titleProperty'], status=doc['status'], visibility=doc['visibility'],
                    definitionYaml=raw, sourceFile=path.name, formatVersion=2, definitionSources=doc.get('_definitionSources', {}),
                    preview={'available':not missing,'missingTables':missing,'reason':'원본 테이블이 현재 로컬 스냅샷에 수집되지 않았습니다.' if missing else ''})
+        obj['preview']['viewOnlyProperties'] = view_properties
         model['objects'].append(obj)
         for link in doc['links']:
             mapping = copy.deepcopy(link['sourceMapping'])

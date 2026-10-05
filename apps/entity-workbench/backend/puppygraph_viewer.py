@@ -10,7 +10,7 @@ ROOT_TYPES = ('ETF', 'Company', 'Equity', 'Organization')
 
 def catalog():
     current = read_catalog()
-    return {'objects': [{'id':o['id'], 'description':o['description'],
+    return {'objects': [{'id':o['id'], 'description':o['description'], 'titleProperty':o['titleProperty'],
                          'properties':[c for c in o['columns'] if c.get('property')],
                          'encodings':o.get('graphValueEncodings',{})} for o in current['objects']],
             'relations':[{'id':r['id'], 'source':r['source'], 'target':r['target'],
@@ -132,8 +132,8 @@ def node(kind, properties):
     properties=normalize(properties)
     identifier=properties.get('id')
     if not isinstance(identifier,str) or not identifier:raise RuntimeError('Missing graph object ID')
-    label=next((str(properties[k]) for k in ('name','title','segmentName','ticker','tradeDate','eventType') if properties.get(k)),identifier)
-    if kind=='ETFHolding':
+    label=next((str(properties[k]) for k in ('displayTitle','name','title','seriesName','nameKr','segmentName','ticker','tradeDate','eventType') if properties.get(k)),identifier)
+    if kind=='ETFHolding' and not properties.get('displayTitle'):
         weight=properties.get('weightRatio')
         label='보유 비중 '+(format(weight,'.2%') if isinstance(weight,(int,float)) else '미확인')
     return {'key':json.dumps([kind,identifier],ensure_ascii=False,separators=(',',':')),

@@ -1,4 +1,9 @@
 CREATE OR REPLACE VIEW ontology_view.financial_report_snapshot AS
+-- Display context is additive; source identities, values and row scope are unchanged.
+SELECT record.*,
+       (company_e.display_name)::text AS company_name,
+       (concat_ws(' / ', COALESCE(NULLIF(company_e.display_name,''), record.company_id, 'Unknown company'), record.fiscal_year::text, record.fs_basis, record.report_coverage, record.receipt_number, to_char(record.received_at AT TIME ZONE 'UTC','YYYY-MM-DD HH24:MI:SS.US') || ' UTC'))::text AS display_title
+FROM (
 SELECT ('[' || to_json(base.corp_code::text)::text || ',' || to_json(base.fiscal_year::text)::text || ',' || to_json(base.reprt_code::text)::text || ',' || to_json(base.fs_basis::text)::text || ',' || to_json(base.raw_run_id::text)::text || ']')::text AS id,
        (base.corp_code)::text AS corp_code,
        (base.instrument_code)::text AS instrument_code,
@@ -12,4 +17,6 @@ SELECT ('[' || to_json(base.corp_code::text)::text || ',' || to_json(base.fiscal
        (base.received_at)::timestamptz AS received_at,
        (base.availability_basis)::text AS availability_basis,
        (SELECT c.actor_id FROM public.company_profile c WHERE c.dart_corp_code=base.corp_code)::text AS company_id
-FROM public.financial_report_version AS base;
+FROM public.financial_report_version AS base
+) AS record
+LEFT JOIN public.entity company_e ON company_e.entity_id=record.company_id;

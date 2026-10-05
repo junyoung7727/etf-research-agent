@@ -3,14 +3,14 @@ const state = {data:null, kind:'objects', selected:null};
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const json = value => esc(JSON.stringify(value, null, 2));
 const snake = value => value.replace(/([a-z0-9])([A-Z])/g,'$1_$2').replace(/([A-Z])([A-Z][a-z])/g,'$1_$2').toLowerCase();
-const policy = {typed_null_pending:'의미·원본 확인 전 typed NULL',identity_encoding:'원본 키 · 기존 인코딩 유지',explicit_transform:'명시된 값 변환',source_value:'원본 값 유지',resolved_reference:'코드·판본을 객체 ID로 해소 · 다중 매칭 검증'};
+const policy = {view_projection:'SQL view projection',typed_null_pending:'의미·원본 확인 전 typed NULL',identity_encoding:'원본 키 · 기존 인코딩 유지',explicit_transform:'명시된 값 변환',source_value:'원본 값 유지',resolved_reference:'코드·판본을 객체 ID로 해소 · 다중 매칭 검증'};
 const mappingNames={object_fk:'객체 뷰의 FK 재사용',resolved_fk:'객체 ID로 해소한 FK',connection_view:'공용 연결 뷰',existing_table:'기존 연결 테이블 재사용',blocked:'구현 보류'};
 function sourceText(c){
   if(c.identity) return c.identity.columns.join(' + ')+' / '+c.identity.encoding;
   if(typeof c.source==='string') return c.source;
   if(c.source?.kind==='unmapped') return '연결된 원본 없음';
   if(c.source?.lookupProperty) return c.source.lookupProperty+'의 명시적 lookup';
-  if(c.source?.table) return 'public.'+c.source.table+'.'+c.source.column+(c.source.alias?' ('+c.source.alias+')':'');
+  if(c.source?.table) return (c.source.schema||'public')+'.'+c.source.table+'.'+c.source.column+(c.source.alias?' ('+c.source.alias+')':'');
   return '아래 관계 식별·연결 규칙 참조';
 }
 function showIssues(ids){

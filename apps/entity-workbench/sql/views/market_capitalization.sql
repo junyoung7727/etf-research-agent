@@ -1,4 +1,11 @@
 CREATE OR REPLACE VIEW ontology_view.market_capitalization AS
+-- Display context is additive; source identities, values and row scope are unchanged.
+SELECT record.*,
+       (security_e.display_name)::text AS security_name,
+       (security_i.ticker)::text AS security_ticker,
+       (security_i.market_code)::text AS security_market_code,
+       (concat_ws(' / ', COALESCE(NULLIF(security_e.display_name,''), record.instrument_id, 'Unknown security') || COALESCE(' (' || security_i.ticker || ' / ' || security_i.market_code || ')',''), 'Market capitalization record', record.snapshot_date::text))::text AS display_title
+FROM (
 SELECT mapped.*,
        mapped.amount::text AS amount_decimal_text
 FROM (
@@ -16,4 +23,7 @@ SELECT ('[' || to_json(base.instrument_id::text)::text || ',' || to_json(base.as
        (NULL)::date AS valuation_date
 FROM public.instrument_classification AS base
 ) AS mapped
-) AS mapped;
+) AS mapped
+) AS record
+LEFT JOIN public.instrument security_i ON security_i.instrument_id=record.instrument_id
+LEFT JOIN public.entity security_e ON security_e.entity_id=security_i.instrument_id AND security_e.entity_type=security_i.entity_type;

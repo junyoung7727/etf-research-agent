@@ -1,4 +1,9 @@
 CREATE OR REPLACE VIEW ontology_view.news_article AS
+-- Display context is additive; source identities, values and row scope are unchanged.
+SELECT record.*,
+       (representative.title)::text AS representative_title,
+       (theme_e.display_name)::text AS theme_name
+FROM (
 SELECT (base.document_id::text)::text AS id,
        (document.title)::text AS title,
        (document.published_at)::timestamptz AS published_at,
@@ -12,4 +17,7 @@ SELECT (base.document_id::text)::text AS id,
        (base.representative_document_id)::text AS representative_document_id,
        (base.theme_concept_id)::text AS theme_concept_id
 FROM public.news_document AS base
-LEFT JOIN public.document AS document ON base.document_id = document.document_id AND base.document_type = document.document_type;
+LEFT JOIN public.document AS document ON base.document_id = document.document_id AND base.document_type = document.document_type
+) AS record
+LEFT JOIN public.document representative ON representative.document_id=record.representative_document_id AND representative.document_type='NEWS'
+LEFT JOIN public.entity theme_e ON theme_e.entity_id=record.theme_concept_id;
