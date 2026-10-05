@@ -20,12 +20,12 @@ class ViewDesignTests(unittest.TestCase):
 
     def test_all_types_have_explicit_proposals_not_deployment_claims(self):
         result = self.catalog()
-        self.assertEqual(len(result['objects']), 23)
-        self.assertEqual(len(result['relations']), 37)
+        self.assertEqual(len(result['objects']), 24)
+        self.assertEqual(len(result['relations']), 38)
         self.assertEqual(result['status'], 'design_only')
         self.assertFalse(result['modelChanged'])
         names = [v['viewName'] for v in result['physicalTables']]
-        self.assertEqual(len(set(names)), 27)  # 23 object views, 3 connection views, 1 existing table.
+        self.assertEqual(len(set(names)), 28)  # 24 object views, 3 connection views, 1 existing table.
         self.assertTrue(all(len(n.split('.')[1].encode()) <= 63 for n in names))
 
     def test_unknown_cost_basis_cannot_be_exposed_as_confirmed_value(self):
