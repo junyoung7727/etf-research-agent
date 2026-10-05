@@ -15,7 +15,7 @@ ROOT=Path(__file__).resolve().parent
 APP=ROOT/'apps/entity-workbench'
 sys.path.insert(0,str(APP));sys.path.insert(0,str(APP/'integration'))
 from backend.cq_tools import CQTools
-from run_cq_agent import PROMPT,OUTPUT
+from run_cq_agent import PROMPT,OUTPUT,model_call_count
 from edge_analysis_v2.agent.runner import run_model
 
 
@@ -47,6 +47,7 @@ async def main():
         report.update(status='error',error=str(exc).replace(key,'[redacted]'))
     finally:
         report['elapsed_ms']=round((perf_counter()-started)*1000,2)
+        report['model_tool_calls']=model_call_count(directory)
         if provider:
             report.update(tool_calls=len(provider.store.calls),graph_queries=len(provider.graph.queries),
                 tools_used=[c['tool'] for c in provider.store.calls],tool_errors=sum(bool(c['error']) for c in provider.store.calls))

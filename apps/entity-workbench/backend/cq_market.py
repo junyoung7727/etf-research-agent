@@ -66,6 +66,7 @@ class MarketTools:
         for member in dataset['selection']['items']:
             identifier=member['object_id'];left=prices.get((identifier,start_date),[]);right=prices.get((identifier,end_date),[])
             row={'object_id':identifier,'object_type':member['object_type'],'weight_ratio':member.get('weight_ratio'),
+                 'start_date':start_date,'end_date':end_date,
                  'status':'unavailable','return_ratio':None,'input_ids':[o['object_id'] for o in left+right]}
             if len(left)!=1 or len(right)!=1:row['reason']='missing_or_ambiguous_exact_endpoint'
             else:

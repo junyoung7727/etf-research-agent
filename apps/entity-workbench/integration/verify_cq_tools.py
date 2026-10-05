@@ -29,7 +29,7 @@ def verify():
         assert actors and mapping
         events=provider.call('search_events',{'targets':{'kind':'selection_ref','ref':{
             'tool_run_id':holdings['tool_run_id'],'path':'/selection'}},'start_date':'2026-09-01',
-            'end_date':'2026-10-05','time_field':'occurred','event_types':['COMPANY.CONTRACT.SIGNING'],'limit':2})
+            'end_date':'2026-10-05','time_field':'reported_event_date','event_types':['COMPANY.CONTRACT.SIGNING'],'limit':2})
         assert 'dataset_ref' in events['result'],events
         event_data=provider.store.reference(events['result']['dataset_ref'],'dataset')['items']
         assert event_data

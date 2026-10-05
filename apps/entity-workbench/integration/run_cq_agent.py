@@ -41,7 +41,22 @@ TOTAL은 해당 항목의 전체 총액이지 기간 누적(YTD)을 뜻하지 �
 검색어 하나가 실패하면 실제 목록이나 스키마로 범위를 확인하라. 조회에 실패한 것과 원자료가 없는 것은 다르다.
 기사 개수는 중복 설명을 위해서도 최종 답변에 넣을 필요가 없다. 원화 수급은 반환된 억원 표시 또는 원 단위를 그대로 써라.
 가격 조정 기준이 미확인이면 미조정이라고도 단정하지 마라. 관측 종가 변화라고 표현하고, 질문에 불필요한 새 계산 수치를 덧붙이지 마라.
+가격 비교 기간과 수급 집계 기간은 각각 확인하고 다르면 같은 기간이라고 쓰지 마라. 공시·보도 날짜를 실제 계약 체결일로 바꾸지 마라.
+동반 상승·매수 관측만으로 가격에 기대가 얼마나 반영됐는지, 특정 종목이 펀드 상승에 얼마나 기여했는지 확정하지 마라.
+환율·원가·금리와 이익 사이의 산업 관계도 별도 검증이 필요한 가설이다. 해당 기업의 노출·조건을 확인하지 않았다면 사실처럼 쓰지 마라.
 자신의 작업이 CQ 평가에 합격했다고 판정하지 마라. 범위 내 데이터만으로 답하라.'''
+
+
+def model_call_count(directory):
+    path=directory/'model/events.jsonl'
+    if not path.exists():return 0
+    count=0
+    with path.open(encoding='utf8') as stream:
+        for line in stream:
+            event=json.loads(line)
+            for block in event.get('message',{}).get('content',[]) or []:
+                if isinstance(block,dict) and block.get('name','').startswith('mcp__analysis__') and 'input' in block:count+=1
+    return count
 
 
 async def execute(args):
@@ -84,6 +99,7 @@ async def execute(args):
     except Exception as exc:
         report.update(status='error',error=str(exc).replace(key,'[redacted]'))
     report['elapsed_ms']=round((perf_counter()-started)*1000,2)
+    report['model_tool_calls']=model_call_count(directory)
     if provider is not None:
         report.update(tool_calls=len(provider.store.calls),
             graph_queries=len(provider.graph.queries),tools_used=[r['tool'] for r in provider.store.calls],

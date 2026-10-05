@@ -149,7 +149,12 @@ class ContextTools:
             values=[Decimal(str(o['properties'][field])) for o in observations if o['properties'].get(field) is not None]
             currency=(member.get('object') or {}).get('properties',{}).get('currencyCode')
             unit='shares_or_units' if field.startswith('netQty') else currency
-            rows.append({'object_id':member['object_id'],'field':field,'value':str(sum(values,Decimal(0))) if values and unit else None,
+            dates=sorted(o['properties']['tradeDate'] for o in observations if o['properties'].get('tradeDate'))
+            total=sum(values,Decimal(0)) if values and unit else None
+            rows.append({'object_id':member['object_id'],'field':field,'value':str(total) if total is not None else None,
+                'requested_start_date':data['scope'].get('start_date'),'requested_end_date':data['scope'].get('end_date'),
+                'first_observation_date':dates[0] if dates else None,'last_observation_date':dates[-1] if dates else None,
+                'value_in_krw_100million':str(total/Decimal('100000000')) if unit=='KRW' and total is not None else None,
                 'unit':unit,'observed_rows':len(observations),'missing_values':len(observations)-len(values),
                 'status':'available_observations_only' if values and unit else 'unavailable',
                 'input_ids':[o['object_id'] for o in observations]})

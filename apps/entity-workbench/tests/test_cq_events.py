@@ -13,6 +13,18 @@ CONDITION={'metric_code':'CONTRACT_VALUE','operator':'gte','value':'100','unit':
 
 
 class EventFeatureTests(unittest.TestCase):
+    def test_reported_date_is_not_advertised_as_verified_execution_date(self):
+        schemas=[]
+        EventTools(SimpleNamespace(graph=None,register=lambda *args:schemas.append(args)))
+        date_input=schemas[0][2]['time_field']
+        self.assertNotIn('occurred',date_input['enum'])
+        event={'object_type':'SourceEvent','object_id':'e','title':'September filing',
+            'properties':{'eventDate':'2026-09-23','lifecycleStage':'DEFINITIVE_SIGNED'}}
+        shown=EventTools.display({'event':event,'participants':[],'features':[],'documents':[]})
+        self.assertEqual(shown['event_date'],'2026-09-23')
+        self.assertIn('not certified',shown['event_date_scope'])
+        self.assertIn('not a verified current',shown['stage_scope'])
+
     def test_missing_invalid_units_and_approximate_values_are_unknown_not_zero(self):
         for rows in ([],[measurement(None)],[measurement('120',unit='USD')],
                      [measurement('120',periodBasis='UNKNOWN')],[measurement('120',parseStatus='approx_or_range')]):
@@ -34,7 +46,7 @@ class EventFeatureTests(unittest.TestCase):
         tool=EventTools(owner)
         tool.enrich=lambda _: [{'event':event,'participants':[{'actor':actor,'role':'SUPPLIER','argument_group':1}],
             'features':[measurement('200',argumentGroup=2)],'documents':[]}]
-        result,_=tool.search({},'2026-10-01','2026-10-05','occurred',
+        result,_=tool.search({},'2026-10-01','2026-10-05','reported_event_date',
             participant_conditions=[{'role_codes':['SUPPLIER']}],feature_filters=[CONDITION])
         self.assertEqual(result[0]['match_status'],'unknown')
 
@@ -46,5 +58,5 @@ class EventFeatureTests(unittest.TestCase):
             select=lambda _: {},actors=lambda _:([actor],[]),result=lambda *a,**kw:None)
         tool=EventTools(owner);tool.enrich=lambda _:[{'event':event,'participants':[],'features':[],'documents':[]}]
         with self.assertRaisesRegex(ValueError,'Actor'):
-            tool.search({},'2026-10-01','2026-10-05','occurred',participant_conditions=[{
+            tool.search({},'2026-10-01','2026-10-05','reported_event_date',participant_conditions=[{
                 'role_codes':['SUPPLIER'],'actor_refs':[{'object_type':'Equity','object_id':'a'}]}])

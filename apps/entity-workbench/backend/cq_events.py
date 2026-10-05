@@ -35,7 +35,8 @@ class EventTools:
     def __init__(self,tools):
         self.tools=tools;self.graph=tools.graph
         tools.register('search_events','Find events involving selected actors or ETF constituent issuers. Return each event with roles, numerical features and document evidence together; do not count repeated sources as confidence.',
-            {'targets':SELECTOR,'start_date':STRING,'end_date':STRING,'time_field':{'enum':['occurred','available']},
+            {'targets':SELECTOR,'start_date':STRING,'end_date':STRING,'time_field':{'enum':['reported_event_date','available'],
+             'description':'reported_event_date filters the date assigned by the source account, not a verified signing/execution date. available filters when the account became available.'},
              'event_types':{'type':'array','items':STRING},'participant_conditions':{'type':'array','items':PARTICIPANT},
              'feature_filters':{'type':'array','items':FEATURE},'available_since':STRING,'limit':LIMIT},
             ['targets','start_date','end_date','time_field'],self.search)
@@ -74,6 +75,7 @@ class EventTools:
                 'available_excerpt':d['document']['properties'].get('leadText'),
                 'read_scope':'stored evidence text and available excerpt; not the complete document'}
                 for d in item['documents']],
+            'event_date_scope':'Date assigned by the source account; actual signing/execution date is not certified. Check the reported text and distinguish a report date from an event date.',
             'stage_scope':'Stage reported by this source account; not a verified current contract status.'}
 
     def search(self,targets,start_date,end_date,time_field,event_types=None,participant_conditions=None,
@@ -90,7 +92,7 @@ class EventTools:
             if any(f['metric_code'] not in codes for f in filters):raise ValueError('Feature code is not present in the graph; discover available event features first')
         selection=self.tools.select(targets);actors,mapping=self.tools.actors(selection)
         params={'start':start_date,'end':end_date}
-        if time_field=='occurred':where='n.eventDate>=date($start) AND n.eventDate<=date($end)'
+        if time_field=='reported_event_date':where='n.eventDate>=date($start) AND n.eventDate<=date($end)'
         elif time_field=='available':
             where='n.availableAt>=datetime($start_at) AND n.availableAt<datetime($end_at)'
             params.update(self.tools.time_bounds(start_date,end_date))

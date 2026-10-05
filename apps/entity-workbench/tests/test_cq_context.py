@@ -30,3 +30,15 @@ class ContextTests(unittest.TestCase):
         self.assertEqual(len(result['items']),1)
         self.assertEqual(result['items'][0]['left_weight'],'0.5')
         self.assertEqual(result['data_scope']['overlap_weight'],'0.4')
+
+    def test_flow_sum_retains_its_actual_period_so_it_cannot_be_relabelled_as_a_price_window(self):
+        data={'items':[{'object_id':'flow'+day,'properties':{'instrumentId':'fund','tradeDate':day,'netValForeign':value}}
+            for day,value in [('2026-09-15','-600000000'),('2026-10-02','84000000')]],
+            'selection':{'items':[{'object_id':'fund','object':{'properties':{'currencyCode':'KRW'}}}]},
+            'scope':{'dataset_kind':'flow_observations','frequency':'daily','start_date':'2026-09-15','end_date':'2026-10-05'}}
+        saved=self.tools.store.commit('fixture',{}, {},elapsed_ms=0,queries=[],dataset=data)
+        result,_=self.tools.context.flow_totals(saved['result']['dataset_ref'],'netValForeign')
+        row=result['items'][0]
+        self.assertEqual(row['value_in_krw_100million'],'-5.16')
+        self.assertEqual(row['requested_start_date'],'2026-09-15')
+        self.assertEqual(row['last_observation_date'],'2026-10-02')
