@@ -14,56 +14,44 @@ function renderCases(){
   }
 }
 function checkCard(check,run){
-  const card=el('div',undefined,'check '+check.status),head=el('div',undefined,'check-heading');
-  card.id='check-'+check.id;card.tabIndex=-1;
+  const card=el('details',undefined,'check '+check.status),head=el('summary',undefined,'check-heading');
+  card.id='check-'+check.id;card.tabIndex=-1;card.open=['fail','unknown'].includes(check.status);
   head.append(el('strong',check.name),badge(check.status));card.append(head,el('p',check.reason,'check-reason'));
   if(check.answer_span)card.append(el('blockquote',check.answer_span));
   for(const id of check.evidence_ids||[]){const b=el('button','근거 '+id.slice(-8),'evidence-button');b.onclick=()=>showEvidence(run.run_id,id);card.append(b)}
   if(check.rule){const d=el('details');d.append(el('summary','판정 기준'),el('p',check.rule,'muted'));card.append(d)}
   return card;
 }
-function criteriaSection(criteria,run){
-  const group=el('section',undefined,'evaluation-group');group.id=criteria.id;
-  group.append(el('h3',criteria.title),el('p',criteria.description,'muted'));
-  for(const [title,checks] of criteria.groups){
-    group.append(el('h4',title));
-    for(const check of checks)group.append(checkCard(check,run));
-  }
-  return group;
-}
-function criteriaOverview(criteria){
+function criteriaOverview(checks,run){
   const overview=el('div',undefined,'criteria-overview');overview.id='criteriaOverview';
-  for(const category of criteria){
-    const wrap=el('div',undefined,'criteria-table-scroll'),table=el('table',undefined,'criteria-table');
-    const head=el('thead'),labels=el('tr'),body=el('tbody'),verdicts=el('tr');
-    wrap.tabIndex=0;wrap.setAttribute('role','region');wrap.setAttribute('aria-label',category.label+' 평가표');
-    const label=el('th','평가 항목'),verdict=el('th','판정');label.scope='col';verdict.scope='row';
-    labels.append(label);verdicts.append(verdict);
-    for(const [,checks] of category.groups)for(const check of checks){
-      const column=el('th',check.name),cell=el('td'),button=el('button',undefined,'verdict-link '+check.status);button.type='button';column.scope='col';
-      button.append(badge(check.status));button.setAttribute('aria-controls','check-'+check.id);
-      button.setAttribute('aria-label',check.name+' · '+button.textContent+' · 상세 보기');
-      button.onclick=()=>{const target=document.getElementById('check-'+check.id);target.focus({preventScroll:true});target.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})};
-      labels.append(column);cell.append(button);verdicts.append(cell);
-    }
-    head.append(labels);body.append(verdicts);table.append(el('caption',category.label),head,body);wrap.append(table);overview.append(wrap);
+  const wrap=el('div',undefined,'criteria-table-scroll'),table=el('table',undefined,'criteria-table');
+  const head=el('thead'),groups=el('tr'),labels=el('tr'),body=el('tbody'),verdicts=el('tr');
+  wrap.tabIndex=0;wrap.setAttribute('role','region');wrap.setAttribute('aria-label','분석 품질 평가표');
+  const label=el('th','CQ'),common=el('th','공통 기준'),specific=el('th','CQ별 기준'),row=el('th',caseId(run));
+  label.scope='col';label.rowSpan=2;common.scope='colgroup';common.colSpan=3;specific.scope='colgroup';row.scope='row';
+  groups.append(label,common,specific);verdicts.append(row);
+  for(const check of checks){
+    const column=el('th',check.name),cell=el('td'),button=el('button',undefined,'verdict-link '+check.status);button.type='button';column.scope='col';
+    button.append(badge(check.status));button.setAttribute('aria-controls','check-'+check.id);
+    button.setAttribute('aria-label',check.name+' · '+button.textContent+' · 상세 보기');
+    button.onclick=()=>{const target=document.getElementById('check-'+check.id);target.open=true;target.focus({preventScroll:true});target.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})};
+    labels.append(column);cell.append(button);verdicts.append(cell);
   }
+  head.append(groups,labels);body.append(verdicts);table.append(el('caption','분석 품질'),head,body);wrap.append(table);overview.append(wrap);
   return overview;
 }
 function renderDetail(detail){
   const run=detail.run,e=detail.evaluation,c=e.contract;current=run;renderCases();
-  const criteria=[
-    {id:'commonCriteria',label:'공통 기준',title:'01 공통 기준',description:'모든 CQ에 적용하는 코드 검사, 분석 품질과 종료조건입니다.',groups:[
-      ['코드 검사',e.code_checks],['수치·의미·일관성',e.agent_checks.filter(x=>x.group==='common')],['종료조건',e.agent_checks.filter(x=>x.group==='termination')]]},
-    {id:'cqCriteria',label:'CQ별 기준',title:'02 CQ별 기준',description:'이 CQ 계약에 명시된 필수 확인 사항과 중대 오류를 검사합니다.',groups:[
-      ['필수 확인 사항',e.agent_checks.filter(x=>x.group==='cq')],['중대 오류',e.agent_checks.filter(x=>x.group==='critical')]]}
-  ];
   const body=$('#detail');body.replaceChildren();
   const heading=el('div',undefined,'detail-heading'),title=el('div');
   title.append(el('p',(caseId(run)||run.case)+' / 실행 평가','eyebrow'),el('h2',c?.title||run.case));
   heading.append(title,link('에이전트 분석 보기 ↗',detail.analysis_url,'primary-link'));body.append(heading);
   const state=el('div',undefined,'run-state');state.append(badge(e.overall),el('span',e.review_status==='current'?'평가 에이전트 판정 · 전문가 교정 전':run.status==='answered'?'답변 생성 완료':run.status==='running'?'실행 중':'실행 오류','muted'));body.append(state);
-  body.append(criteriaOverview(criteria));
+  body.append(criteriaOverview(e.agent_checks,run));
+  const technical=el('details',undefined,'technical-checks'),technicalHead=el('summary');technical.id='technicalChecks';
+  const technicalStatus=e.code_checks.some(x=>x.status==='fail')?'fail':e.code_checks.length&&e.code_checks.every(x=>x.status==='pass')?'pass':'not_evaluated';
+  technical.open=technicalStatus==='fail';technicalHead.append(el('strong','기술 검사 '),badge(technicalStatus));technical.append(technicalHead);
+  for(const check of e.code_checks)technical.append(checkCard(check,run));body.append(technical);
   const select=el('select');select.id='runSelect';select.setAttribute('aria-label','같은 CQ의 실행 선택');
   for(const r of data.runs.filter(r=>caseId(r)===caseId(run))){const o=el('option',r.run_id+' · '+(r.execution_host||r.status));o.value=r.run_id;o.selected=r.run_id===run.run_id;select.append(o)}
   select.onchange=()=>selectRun(select.value);body.append(select,el('p','기준시각 '+run.cutoff+' · 모델 '+(run.model||'미기록'),'muted'));
@@ -77,7 +65,8 @@ function renderDetail(detail){
   if(e.review_status!=='current')body.append(el('p',({missing:'새 계약의 에이전트 평가가 아직 없습니다.',stale:'답변·근거·계약이 바뀌어 기존 평가를 적용하지 않았습니다.',invalid:'저장된 평가 형식이나 인용이 유효하지 않습니다.'})[e.review_status]||'미평가','review-notice'));
   if(e.reviewer)body.append(el('p','평가자 '+(e.reviewer.model||e.reviewer.method||'기록 확인')+' · 독립 의미 판정, 전문가 교정 전','muted'));
   if(e.overall==='review_needed'&&e.agent_proposal==='pass')body.append(el('p','평가 에이전트는 통과를 제안했습니다. 아직 정확도가 검증되지 않은 평가자이므로 최종 합격으로 집계하지 않습니다.','review-notice'));
-  for(const category of criteria)body.append(criteriaSection(category,run));
+  const quality=el('section',undefined,'evaluation-group');quality.id='qualityDetails';quality.append(el('h3','평가 상세'));
+  for(const check of e.agent_checks)quality.append(checkCard(check,run));body.append(quality);
   renderEfficiency(body,e,run);
   if(c){
     const d=el('details',undefined,'contract');d.append(el('summary','CQ 평가 계약 · v'+c.version),el('h4','중대 오류'));
@@ -90,7 +79,7 @@ function renderDetail(detail){
   if(run.error)body.append(el('p',run.error,'review-notice'));
 }
 function renderEfficiency(body,e,run){
-  const f=e.efficiency,s=el('section',undefined,'evaluation-group');s.append(el('h3','03 호출 효율'));const stats=el('div',undefined,'stats-grid');
+  const f=e.efficiency,s=el('section',undefined,'evaluation-group');s.append(el('h3','호출 효율'));const stats=el('div',undefined,'stats-grid');
   for(const [label,value] of [['모델 요청',f.model_calls==null?'미기록':f.model_calls+'회'],['저장된 도구 실행',f.actual_calls+'회'],['참조 호출','미설정'],['소요 시간',f.elapsed_ms==null?'미기록':(f.elapsed_ms/1000).toFixed(1)+'초'],['SDK 추정 비용',f.sdk_estimated_usd==null?'미기록':'$'+f.sdk_estimated_usd.toFixed(4)],['불필요한 반복',f.unnecessary_calls==null?'미평가':f.unnecessary_calls+'회']]){
     const box=el('div');box.append(el('span',label),el('strong',value));stats.append(box);
   }

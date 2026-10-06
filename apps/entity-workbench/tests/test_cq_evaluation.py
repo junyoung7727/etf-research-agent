@@ -1,9 +1,13 @@
 import copy
+import asyncio
+from dataclasses import dataclass
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from types import SimpleNamespace
 
 from backend import cq_benchmark
 from backend import cq_evaluation as evaluation
@@ -126,6 +130,26 @@ class EvaluationTests(unittest.TestCase):
             self.assertIsNone(contract['reference_execution'])
             self.assertTrue(contract['reference_path'])
 
+    def test_one_review_has_four_quality_verdicts_and_separate_code_checks(self):
+        for i in range(1,14):
+            self.report['case']=f'CQ{i:02}-suite';self.save()
+            result=self.result()
+            self.assertEqual([r['id'] for r in result['agent_checks']],['accuracy','reasoning','research','fulfillment'])
+            self.assertEqual([r['group'] for r in result['agent_checks']],['common','common','common','cq'])
+            self.assertEqual(len(result['code_checks']),3)
+            self.assertEqual(result['contract']['version'],3)
+
+    def test_old_contract_review_remains_on_disk_but_cannot_pass_four_criteria(self):
+        with patch.object(evaluation,'contract_for',return_value={'id':'CQ05','version':2,'common':[],
+                'required_findings':[],'critical_errors':[],'completion_conditions':'old contract'}):
+            evaluation.save_review(self.run,self.review(),reviewer={'model':'test'})
+        previous=(self.run/'evaluation.json').read_bytes()
+        result=self.result()
+        self.assertEqual(result['review_status'],'stale')
+        self.assertEqual(result['overall'],'not_evaluated')
+        self.assertEqual((self.run/'evaluation.json').read_bytes(),previous)
+        self.assertTrue(all(r['status']=='not_evaluated' for r in result['agent_checks']))
+
     def test_judge_packet_hides_old_grade_and_schema_accepts_complete_review(self):
         from integration.judge_cq import packet,output_schema
         from jsonschema import Draft202012Validator
@@ -133,9 +157,49 @@ class EvaluationTests(unittest.TestCase):
         self.assertNotIn('semantic_grade',initial)
         self.assertNotIn('model',initial)
         self.assertIn(self.id,values)
+        self.assertEqual(len(initial['checks']),4)
         schema=output_schema([r['id'] for r in result['agent_checks']])
         Draft202012Validator.check_schema(schema)
         Draft202012Validator(schema).validate(self.review())
+
+    def test_one_evaluator_session_returns_all_four_verdicts_and_reads_saved_records(self):
+        from integration.judge_cq import judge
+        model=self.run/'model';model.mkdir()
+        (model/'events.jsonl').write_text('{"message_type":"ResultMessage","message":{}}\n',encoding='utf8')
+        submitted=[];clients=[];readers={};review=self.review();evidence_id=self.id
+
+        @dataclass
+        class ResultMessage:
+            structured_output:dict
+            subtype:str='success'
+            is_error:bool=False
+
+        def tool(name,*args):
+            def register(fn):readers[name]=fn;return fn
+            return register
+
+        class Client:
+            def __init__(self,**kwargs):clients.append(kwargs)
+            async def __aenter__(self):return self
+            async def __aexit__(self,*args):pass
+            async def query(self,value):
+                submitted.append(json.loads(value))
+                await readers['read_record']({'id':evidence_id})
+                await readers['read_record']({'id':'trace'})
+            async def receive_response(self):yield ResultMessage(review)
+
+        sdk=SimpleNamespace(ClaudeAgentOptions=lambda **kwargs:kwargs,ClaudeSDKClient=Client,
+            create_sdk_mcp_server=lambda **kwargs:kwargs,tool=tool)
+        with patch.dict(sys.modules,{'claude_agent_sdk':sdk}):
+            result=asyncio.run(judge(self.run,model='fixture',key='test-key'))
+        self.assertEqual(len(clients),1)
+        self.assertEqual(len(submitted),1)
+        self.assertEqual([c['id'] for c in submitted[0]['checks']],['accuracy','reasoning','research','fulfillment'])
+        self.assertNotIn('code_checks',submitted[0])
+        self.assertIn('trace',submitted[0]['available_records'])
+        self.assertEqual(result['review_status'],'current')
+        self.assertEqual(result['overall'],'review_needed')
+        self.assertEqual(len(list((self.run/'evaluations').iterdir())),1)
 
 
 if __name__=='__main__':unittest.main()
