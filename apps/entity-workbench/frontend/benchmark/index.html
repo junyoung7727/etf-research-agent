@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ORCA · CQ 벤치마크</title><link rel="stylesheet" href="/benchmark.css"></head>
+<body><header><a class="brand" href="/">ORCA <span>/ CQ BENCHMARK</span></a><nav><a href="/modeler">객체 모델</a><a href="/puppygraph">PuppyGraph</a><a href="/benchmark" aria-current="page">CQ 벤치마크</a></nav></header>
+<main><div class="intro"><div><p class="eyebrow">실제 에이전트 · 그래프 탐색 · 답변 근거</p><h1>CQ 벤치마크</h1></div><button id="refresh">새로고침</button></div>
+<p id="notice" role="status">저장된 실행을 불러옵니다.</p><section id="metrics" class="metrics" aria-label="검증 현황"></section>
+<section id="trendPanel" class="matrix-panel" aria-label="버전별 통과 추이">
+<div class="matrix-heading"><h2>버전별 통과 추이</h2><div class="trend-legend"><span class="total">전체</span><span class="common">공통 기준</span><span class="cq">CQ별 기준</span></div></div>
+<p id="trendNote" class="muted">버전별 판정을 집계합니다.</p><div id="trendChart"></div>
+</section>
+<section id="matrixPanel" class="matrix-panel" aria-label="버전별 전체 CQ 평가표">
+<div class="matrix-heading"><h2>전체 CQ 평가표</h2><label for="versionSelect">에이전트 버전 <select id="versionSelect"></select></label></div>
+<p id="versionInfo" class="muted"></p><div id="matrixTable"></div>
+</section>
+<section id="overview" aria-label="기준선 평가와 배치 효율"></section>
+<div class="workspace"><aside><h2>평가할 질문</h2><div id="runs"></div></aside><article id="detail"><h2>CQ를 선택하세요.</h2><p>검사 결과와 판정 근거를 확인하고 같은 실행의 에이전트 분석으로 이동할 수 있습니다.</p></article></div>
+</main><dialog id="evidence"><div class="dialog-heading"><h2>저장된 도구 근거</h2><button id="closeEvidence">닫기</button></div><pre id="evidenceBody"></pre></dialog><script src="/benchmark-shared.js" defer></script><script src="/benchmark.js" defer></script></body></html>

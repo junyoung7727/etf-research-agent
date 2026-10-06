@@ -8,6 +8,7 @@ SELECT argument.event_argument_id::text AS participation_id,
             WHEN actor.actor_type IN ('GOVERNMENT', 'INSTITUTION') THEN actor.actor_type
        END::text AS actor_type,
        argument.role_code::text AS role_code,
-       argument.mention_text::text AS mentioned_name
+       argument.mention_text::text AS mentioned_name,
+       argument.group_ord::smallint AS argument_group
 FROM public.event_argument AS argument
 LEFT JOIN public.actor AS actor ON actor.actor_id = argument.entity_id;

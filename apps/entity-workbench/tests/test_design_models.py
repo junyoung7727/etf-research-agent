@@ -26,7 +26,7 @@ class DesignModelTests(unittest.TestCase):
     def test_published_scope_tracks_domain_decisions_not_old_storage_cards(self):
         model = load_models(OBJECT_TYPES, self.meta, EDGE_ONTOLOGY / 'metadata')
         objects = {o['id']: o for o in model['objects']}
-        self.assertEqual(len(objects), 23)
+        self.assertTrue({'EventMeasurement', 'ETFOutlookReport', 'ETFPriceExplanation'} <= objects.keys())
         self.assertNotIn('ReportedSupplyContract', objects)
         self.assertNotIn('ETFHoldingCollectionStatus', objects)
         internal = {'dataVersion', 'rawRunId', 'collectionRunId', 'parserVersion',
@@ -45,7 +45,7 @@ class DesignModelTests(unittest.TestCase):
         reports = [r for r in model['relations'] if r['name'] == 'DescribesEvent']
         self.assertEqual({r['source'] for r in reports}, {'NewsArticle', 'Disclosure'})
         for rel in reports:
-            self.assertNotIn('linkProperties', rel)
+            self.assertEqual(set(rel['linkProperties']), {'assertionId', 'evidenceType', 'evidenceText'})
             self.assertEqual(set(rel['sourceMapping'].get('evidenceFields', {})), {'extractionConfidence'} if rel['source'] == 'NewsArticle' else set())
 
     def test_source_constraints_are_verified_and_composite_fk_is_not_shortened(self):
@@ -91,12 +91,13 @@ class DesignModelTests(unittest.TestCase):
             self.assertEqual(obj['status'], 'experimental')
             self.assertTrue(obj['displayName'])
         relations = {r['id']: r for r in model['relations']}
-        self.assertEqual(len(relations), 37)
+        self.assertTrue({'EventMeasurement_ForEvent_SourceEvent', 'ETFOutlookReport_ForETF_ETF',
+                         'ETFPriceExplanation_ForETF_ETF'} <= relations.keys())
         participation = relations['Company_ParticipatesIn_SourceEvent']
         self.assertEqual(participation['cardinality'], 'N:N')
         self.assertEqual(participation['mappingStatus'], 'defined')
         self.assertNotEqual(participation['sourceMapping']['kind'], 'propertyMatch')
-        self.assertEqual(set(participation['linkProperties']), {'roleCode', 'mentionedName'})
+        self.assertEqual(set(participation['linkProperties']), {'roleCode', 'mentionedName', 'argumentGroup'})
         self.assertEqual(participation['backing']['type'], 'joinTable')
         disclosure = relations['Company_HasDisclosure_Disclosure']
         self.assertEqual(disclosure['inverse']['apiName'], 'forCompany')

@@ -1,5 +1,5 @@
 {
-  "revision": 4,
+  "revision": 8,
   "designedAt": "2026-10-05",
   "status": "design_only",
   "schema": "ontology_view",
@@ -606,6 +606,38 @@
       "grain": "원문에서 식별한 사건 계정 한 건. 사건 묶음과 구별하며 참여 역할은 관계 뷰에 둔다.",
       "issues": [],
       "referenceColumns": []
+    },
+    "EventMeasurement": {
+      "viewName": "ontology_view.event_measurement",
+      "grain": "One numeric statement extracted for a source-specific event account. Each measurement retains its original wording, unit and time basis; different measures or conflicting statements remain separate records.",
+      "issues": [],
+      "referenceColumns": [
+        {
+          "column": "value_decimal",
+          "type": "text",
+          "viewNullable": true,
+          "description": "Lossless decimal transport for PuppyGraph.",
+          "valuePolicy": "explicit_transform"
+        }
+      ],
+      "graphValueEncodings": {
+        "value": {
+          "encoding": "decimal_text",
+          "column": "value_decimal"
+        }
+      }
+    },
+    "ETFOutlookReport": {
+      "viewName": "ontology_view.etf_outlook_report",
+      "grain": "One published v2 outlook report for an ETF. The document preserves an earlier interpretation and its analysis cutoff.",
+      "issues": [],
+      "referenceColumns": []
+    },
+    "ETFPriceExplanation": {
+      "viewName": "ontology_view.etf_price_explanation",
+      "grain": "One published v2 explanation of an ETF price movement. The document preserves an earlier interpretation and its analysis cutoff.",
+      "issues": [],
+      "referenceColumns": []
     }
   },
   "relations": {
@@ -676,7 +708,8 @@
         },
         "properties": {
           "roleCode": "role_code",
-          "mentionedName": "mentioned_name"
+          "mentionedName": "mentioned_name",
+          "argumentGroup": "argument_group"
         },
         "endpointPolicy": "existing_typed_objects_only"
       }
@@ -850,7 +883,11 @@
             "DISCLOSURE"
           ]
         },
-        "properties": {},
+        "properties": {
+          "assertionId": "assertion_id",
+          "evidenceType": "evidence_type",
+          "evidenceText": "evidence_text"
+        },
         "endpointPolicy": "existing_typed_objects_only"
       }
     },
@@ -1229,7 +1266,10 @@
           ]
         },
         "properties": {
-          "extractionConfidence": "extraction_confidence"
+          "extractionConfidence": "extraction_confidence",
+          "assertionId": "assertion_id",
+          "evidenceType": "evidence_type",
+          "evidenceText": "evidence_text"
         },
         "endpointPolicy": "existing_typed_objects_only"
       }
@@ -1332,7 +1372,8 @@
         },
         "properties": {
           "roleCode": "role_code",
-          "mentionedName": "mentioned_name"
+          "mentionedName": "mentioned_name",
+          "argumentGroup": "argument_group"
         },
         "endpointPolicy": "existing_typed_objects_only"
       }
@@ -1505,13 +1546,76 @@
         "properties": {},
         "endpointPolicy": "existing_typed_objects_only"
       }
+    },
+    "EventMeasurement_ForEvent_SourceEvent": {
+      "readiness": "proposal",
+      "rowPolicy": "preserve_source_records",
+      "grain": "The source-specific event account in which this measurement was reported.",
+      "issues": [],
+      "edgeIdentity": [
+        "id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "EventMeasurement",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "source_event_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "ETFOutlookReport_ForETF_ETF": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "The ETF discussed by this published analysis report.",
+      "issues": [],
+      "edgeIdentity": [
+        "id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "ETFOutlookReport",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "etf_instrument_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
+    },
+    "ETFPriceExplanation_ForETF_ETF": {
+      "readiness": "proposal",
+      "rowPolicy": "matched_object_pair",
+      "grain": "The ETF discussed by this published analysis report.",
+      "issues": [],
+      "edgeIdentity": [
+        "id"
+      ],
+      "physicalMapping": {
+        "kind": "object_fk",
+        "source": "ETFPriceExplanation",
+        "edgeIdColumns": [
+          "id"
+        ],
+        "fromColumn": "id",
+        "toColumn": "etf_instrument_id",
+        "filters": {},
+        "properties": {},
+        "endpointPolicy": "existing_typed_objects_only"
+      }
     }
   },
   "definitionHashes": {
     "object_types/Company.yaml": "d8606699dc16ac41f19a3b80a9f52c7537d686ab2e2be69fb1a3405a542ba464",
     "link_types/Company_Issues_Equity.yaml": "f72a506d676567db58a9d03e7582e5be2f8e3ab83c70ebe0b8b198d44745f111",
     "link_types/Company_HasDisclosure_Disclosure.yaml": "63263ea1d49c054b6c406d50c03541997a53c6d9eb97c6a7f58898bbc40f407e",
-    "link_types/Company_ParticipatesIn_SourceEvent.yaml": "70b196b0451eb85fbbe80a31d8726d0387b5cf3971f78824e3df34b69ac486e1",
+    "link_types/Company_ParticipatesIn_SourceEvent.yaml": "a44b04ff5fa275a11ef370190beb5dec380e7a698402d5daa6d7bbafcef2dfcb",
     "object_types/Concept.yaml": "8caaf37144605e2419b18c7313086bfad2e892c927242a71d9a97796224f0c49",
     "link_types/Concept_HasParentConcept_Concept.yaml": "11afe72995c0f03b3609c74b37a978a85fce3860397bbfa8ba4904fcc61bfb36",
     "object_types/DailyBar.yaml": "b85c05ea6776f2da3824ed4b4a3b2d8b8b1e2063e2ea3baf5536b9161e7b3649",
@@ -1523,7 +1627,7 @@
     "object_types/DailyNAV.yaml": "0beef0f7e9fd14783e4f9437fbbd7284886370138a7faa8a931c3ad6656958cd",
     "link_types/DailyNAV_ForETF_ETF.yaml": "d0d444a265ca05738413ad3e3f07437ce7198f30ba5f6b9c3fa3f5faa9a444ca",
     "object_types/Disclosure.yaml": "8b4b8c6e46755e1d388c4513536122635f4c5fc929d9cc73a47d7fc745cb1751",
-    "link_types/Disclosure_DescribesEvent_SourceEvent.yaml": "95d09c23e7deb5c9cca834c368dfa26dfd846b5b82906649e07792dbe8c6eb59",
+    "link_types/Disclosure_DescribesEvent_SourceEvent.yaml": "64ae677aae0ccba25b66dd76ff54a1a1c4e92207692bc15b8981802ee97b2886",
     "object_types/ETF.yaml": "f2d170ab81e26edd06cd1698f0bfd131f5a970b5ec566bb34ab83b9a24f11709",
     "link_types/ETF_HasTheme_Concept.yaml": "f8389cb786bb5f5d2c705431e3801ebc9c79408a02d452ff57e5547d6e3748f5",
     "link_types/ETF_Tracks_MarketIndex.yaml": "148a4323d89707d20987746dbb277df6ef6cfac8f84a373be6b04e1b0966db60",
@@ -1531,7 +1635,13 @@
     "link_types/ETFHolding_ForETF_ETF.yaml": "f4f8e9e3e3e62745712f56cc797e9ebae0cc7a749a6133215444a92ffb947f93",
     "link_types/ETFHolding_HoldsSecurity_Equity.yaml": "8e55405371a9ac3e3b4a9af3131059385ef078fbebfb655bdbf1d1826d66a714",
     "link_types/ETFHolding_HoldsSecurity_ETF.yaml": "dc1dba83037d5d97eb60ace15ffacd026cb66599ca76f49ab4d67309f8c7ca76",
+    "object_types/ETFOutlookReport.yaml": "06dbb69ed40a78f5d3fa19f00078985d9e4e43047e9ff7f9d62d6a6aa1ebfeb5",
+    "link_types/ETFOutlookReport_ForETF_ETF.yaml": "c4bddc40fb81cbc69fa985b5097f52bf50dc5ff6dae7431f6a5006c2e0fc7490",
+    "object_types/ETFPriceExplanation.yaml": "610fc2ce809e10707de5fc107b07920793e8688736a1747655540e2a61223442",
+    "link_types/ETFPriceExplanation_ForETF_ETF.yaml": "baa3573c9dc39e32f88462c6d62cf5602109b5ae0814fc35ea63263bcb756c12",
     "object_types/Equity.yaml": "c7bd7b49954691de605471ed7581766dcc0ec7a177a1fc1c04e7de48b73dc83f",
+    "object_types/EventMeasurement.yaml": "498479869f4f84554d3800541d5da87fe15f24ef47f6742309b3121f27d67687",
+    "link_types/EventMeasurement_ForEvent_SourceEvent.yaml": "3f2b48bc9cfedfef54a08b3fed734ccaefaae7d760ad1ef2adf806ce208c9238",
     "object_types/EventThread.yaml": "e00d9e2b5480ddea6619d22282f77f7f5e9f1581a10024290e379c06be9b3780",
     "object_types/ExchangeSecurityClassification.yaml": "f308a36c07994071acae34fbfe04bb11d473c83a63ae43592a7c1d15d0d017f0",
     "link_types/ExchangeSecurityClassification_ForSecurity_Equity.yaml": "455b7c3d80ac0c75e9dbe67b1bf03a870681f41bbb6a2eeb5ad06212920ced4c",
@@ -1553,10 +1663,10 @@
     "object_types/NewsArticle.yaml": "1135439c8473bc0f4eb2e44e239d7c426fadd5f653ddb430dc8434fcf9a6d473",
     "link_types/NewsArticle_HasRepresentativeArticle_NewsArticle.yaml": "4cd91192b81eadec8db9c5074d40ec78389e4c0ec000ff47045da5b939483af5",
     "link_types/NewsArticle_HasTheme_Concept.yaml": "492a300235a490c0587a11cd89bec2ca9054d224138178f302b580abdf021e58",
-    "link_types/NewsArticle_DescribesEvent_SourceEvent.yaml": "b254b6005cda0543d50642c82a561ea933e2339bfebaa6bb12568244b52fe299",
+    "link_types/NewsArticle_DescribesEvent_SourceEvent.yaml": "c3e171c05bbc54527d4b32b24be6bc24efc6aea6087a6623874e9037d1d7e0bb",
     "link_types/NewsArticle_MentionsSecurity_Equity.yaml": "c7f77eabfed88de09b72b01d50a111c48c7f379f41715eaf9e03b8601a598756",
     "object_types/Organization.yaml": "b0c1cec2cdec481b1fc89b26d07e973261b2cc30dbd373c13af1e0fb492ac897",
-    "link_types/Organization_ParticipatesIn_SourceEvent.yaml": "3cc441d01bd52f3fb32760796a9ced464c0885e5b4f44ff2a1e18e0e86fe1c3d",
+    "link_types/Organization_ParticipatesIn_SourceEvent.yaml": "fcf5e7b5312cf4d7e3f76f7b640f001b40ca12f7cb235341f03bf4f9966dc6f5",
     "object_types/ReportedBusinessSegment.yaml": "ad8b75cb9b0fef8f10469f978f79220979924e4f85efde6da968837aef433bef",
     "link_types/ReportedBusinessSegment_DisclosedIn_Disclosure.yaml": "763f1ab6767f752df92cab73482c7a6eea6beb35b252e0fc27c2a9f7d7b5d45f",
     "link_types/ReportedBusinessSegment_IdentifiesSegment_Concept.yaml": "ba66e12303c1f412914ff4b9ebc3db7855c23f5f8dea75c92bd0b021a8c3eee1",
@@ -1613,6 +1723,17 @@
           "type": "text",
           "viewNullable": true,
           "description": "Name recorded in the source mention."
+        },
+        {
+          "column": "argument_group",
+          "type": "smallint",
+          "description": "Stored group ordinal of this participant within the source-event account. Match a measurement group only within that same event; an absent group is unresolved.",
+          "viewNullable": true,
+          "valuePolicy": "source_value",
+          "source": {
+            "table": "event_argument",
+            "column": "group_ord"
+          }
         }
       ],
       "sourceTables": [
@@ -1657,6 +1778,39 @@
           "type": "double precision",
           "viewNullable": true,
           "description": "Self-reported extraction confidence, not event truth."
+        },
+        {
+          "column": "assertion_id",
+          "type": "text",
+          "description": "Identifier of the particular extracted assertion connecting this document to this event account.",
+          "viewNullable": true,
+          "valuePolicy": "source_value",
+          "source": {
+            "table": "event_evidence",
+            "column": "assertion_id"
+          }
+        },
+        {
+          "column": "evidence_type",
+          "type": "text",
+          "description": "Kind of supporting material recorded for this link, such as TITLE or DISCLOSURE_FACT.",
+          "viewNullable": true,
+          "valuePolicy": "source_value",
+          "source": {
+            "table": "event_evidence",
+            "column": "evidence_type"
+          }
+        },
+        {
+          "column": "evidence_text",
+          "type": "text",
+          "description": "Stored supporting text for this event-to-document link. Its scope is the recorded excerpt, not necessarily the full document.",
+          "viewNullable": true,
+          "valuePolicy": "source_value",
+          "source": {
+            "table": "event_evidence",
+            "column": "evidence_text"
+          }
         }
       ],
       "sourceTables": [

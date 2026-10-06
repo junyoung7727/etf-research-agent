@@ -95,7 +95,7 @@ class SemanticModelTests(unittest.TestCase):
             self.assertEqual(mapping['targetEndpoint'], 'event_argument.source_event_id')
             self.assertNotIn('backingObjectType', mapping)
             self.assertEqual(relation['backing']['type'], 'joinTable')
-            self.assertEqual(set(relation['linkProperties']), {'roleCode', 'mentionedName'})
+            self.assertEqual(set(relation['linkProperties']), {'roleCode', 'mentionedName', 'argumentGroup'})
             self.assertEqual(mapping['properties']['roleCode']['column'], 'role_code')
             self.assertFalse(relation['linkProperties']['roleCode']['nullable'])
             self.assertTrue(relation['linkProperties']['mentionedName']['nullable'])

@@ -1,0 +1,28 @@
+name: CQ tool semantics
+on:
+  pull_request:
+    paths:
+      - 'apps/entity-workbench/**'
+      - '.github/workflows/cq-tools.yml'
+  push:
+    branches: ['feature/cq-tools-benchmark']
+permissions:
+  contents: read
+jobs:
+  tool-semantics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install PyYAML jsonschema
+      - name: Verify pure tool contracts without cloud credentials
+        env:
+          PYTHONPATH: apps/entity-workbench
+        run: >-
+          python -m unittest -v
+          tests.test_cq_store tests.test_cq_graph tests.test_cq_tools
+          tests.test_cq_events tests.test_cq_market tests.test_cq_financial
+          tests.test_cq_context tests.test_cq_holdings tests.test_cq_benchmark
+          tests.test_cq_evaluation tests.test_agent_version

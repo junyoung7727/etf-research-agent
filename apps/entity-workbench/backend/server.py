@@ -327,6 +327,21 @@ class Handler(BaseHTTPRequestHandler):
         if not self.safe_host(): return self.reply(403,{'error':'Local host only'})
         u=urlparse(self.path);q={k:v[0] for k,v in parse_qs(u.query).items()}
         try:
+            if u.path=='/api/cq-benchmark':
+                from backend.cq_benchmark import catalog
+                return self.reply(200,catalog())
+            if u.path=='/api/cq-benchmark/matrix':
+                from backend.cq_benchmark import matrix
+                return self.reply(200,matrix(**q))
+            if u.path=='/api/cq-benchmark/trend':
+                from backend.cq_benchmark import trend
+                return self.reply(200,trend())
+            if u.path=='/api/cq-benchmark/evidence':
+                from backend.cq_benchmark import evidence
+                return self.reply(200,evidence(**q))
+            if u.path in ('/api/cq-benchmark/detail','/api/cq-benchmark/trace','/api/cq-benchmark/artifact'):
+                from backend import cq_benchmark
+                return self.reply(200,getattr(cq_benchmark,u.path.rsplit('/',1)[-1])(**q))
             if u.path.startswith('/api/puppygraph/'):
                 from backend import puppygraph_viewer as viewer
                 if u.path=='/api/puppygraph/catalog': return self.reply(200,viewer.catalog())
@@ -354,6 +369,8 @@ class Handler(BaseHTTPRequestHandler):
                 files.update({'/view-design':'view_design/index.html','/view-design.js':'view_design/app.js','/view-design.css':'view_design/style.css'})
                 files.update({'/puppygraph':'puppygraph/index.html','/puppygraph.js':'puppygraph/app.js','/puppygraph.css':'puppygraph/style.css'})
                 files.update({'/puppygraph-exploration.js':'puppygraph/exploration.js','/vendor/vis-network.min.js':'vendor/vis-network.min.js'})
+                files.update({'/benchmark':'benchmark/index.html','/benchmark.js':'benchmark/app.js','/benchmark.css':'benchmark/style.css'})
+                files.update({'/benchmark/analysis':'benchmark/analysis.html','/benchmark-analysis.js':'benchmark/analysis.js','/benchmark-shared.js':'benchmark/shared.js'})
                 if u.path in files:
                     f=FRONTEND/files[u.path];types={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css'}
                     return self.reply(200,f.read_bytes(),types[f.suffix]+'; charset=utf-8')
