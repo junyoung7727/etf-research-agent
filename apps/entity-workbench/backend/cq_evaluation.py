@@ -144,10 +144,12 @@ def validate_review(review,checks,report,calls):
 def evaluate(directory):
     directory=Path(directory);report=read(directory/'benchmark.json');calls=records(directory)
     contract=contract_for(report.get('case',directory.name));code=code_checks(report,calls)
-    rules=contract['common']+contract['required_findings']+[
-        {'id':contract['id']+'.error.'+str(i+1),'name':name,'group':'critical',
-         'rule':'이 오류가 답변 전체에 없으면 pass, 한 문장이라도 있으면 fail이다. 단순 키워드가 아니라 문장과 실제 근거의 의미를 대조한다. 다른 항목의 장점으로 상쇄하지 않는다.'}
-        for i,name in enumerate(contract['critical_errors'])] if contract else []
+    rules=contract['common']+[
+        {'id':'fulfillment','name':'요구 충족','group':'cq',
+         'rule':'CQ 계약의 required_findings와 completion_conditions를 실제 질문의 대상·날짜에 맞게 모두 확인한다. '
+                'critical_errors는 별도 점수가 아닌 실패 조건이다. 한 가지라도 해당하면 fail이며 다른 장점으로 상쇄하지 않는다. '
+                '자료 부재를 올바르게 처리한 경우와 필수 목적을 누락한 경우를 구별한다. 판단 자료 부족이면 unknown이다.'}
+    ] if contract else []
     checks=[{**r,'method':'agent','status':'not_evaluated','reason':'새 계약으로 평가하지 않았습니다.',
         'answer_span':'','evidence_ids':[]} for r in rules]
     signature=fingerprint(directory,report,calls,contract);review_status='missing';reviewer=None;review=None
