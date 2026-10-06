@@ -1,17 +1,81 @@
-const $=s=>document.querySelector(s);let current=null,data=null;
-function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n}
-function grade(run){return({passed:'통과',data_limited:'자료 부족',needs_improvement:'개선 필요',failed:'실패',not_reviewed:'미평가'})[run.semantic_grade]||'미평가'}
-async function evidence(run,id){$('#evidenceBody').textContent='불러오는 중…';$('#evidence').showModal();try{const r=await fetch('/api/cq-benchmark/evidence?'+new URLSearchParams({run_id:run.run_id,tool_run_id:id}));if(!r.ok)throw new Error('근거를 읽을 수 없습니다.');$('#evidenceBody').textContent=JSON.stringify(await r.json(),null,2)}catch(e){$('#evidenceBody').textContent=e.message}}
-function select(run){current=run.run_id;renderRuns();const body=$('#detail');body.replaceChildren();body.append(el('h2',run.case));const badges=el('div');badges.append(el('span',run.status==='answered'?'답변 생성':run.status==='running'?'실행 중':'실행 오류','badge'),el('span',grade(run),'badge '+(run.semantic_grade==='passed'?'good':'warning')));body.append(badges,el('p',run.question,'question'));
-const stats=el('div',undefined,'stats');for(const t of [`모델 도구 호출 ${run.model_tool_calls??run.tool_calls??'—'}회`,`저장된 실행 ${run.tool_calls??'—'}회`,`그래프 쿼리 ${run.graph_queries??'—'}회`,`소요 ${run.elapsed_ms===undefined?'—':(run.elapsed_ms/1000).toFixed(1)+'초'}`,`모델 ${run.model}`])stats.append(el('span',t));body.append(stats,el('p',`분석 기준시각: ${run.cutoff} · ${run.execution_host||'실행 환경 미기록'}`,'muted'));
-body.append(el('h3','CQ 평가'));if(run.review?.findings){const list=el('ul',undefined,'review');for(const t of run.review.findings)list.append(el('li',t));body.append(list)}else body.append(el('p','의미 평가가 아직 완료되지 않았습니다. 인용 ID 존재 여부만으로 CQ를 통과시키지 않습니다.','muted'));
-if(run.error)body.append(el('p',run.error,'review'));body.append(el('h3','에이전트 최종 답변'),el('div',run.response?.answer||'아직 저장된 답변이 없습니다.','answer'));
-const claims=el('details');claims.append(el('summary','주장별 근거 확인'));for(const claim of run.response?.claims||[]){const item=el('div',undefined,'claim');item.append(el('div',claim.claim),el('small',claim.purpose,'muted'));for(const id of claim.tool_run_ids){const button=el('button',id);button.onclick=()=>evidence(run,id);item.append(button)}claims.append(item)}body.append(claims);
-const limits=run.response?.limitations||[];if(limits.length){body.append(el('h3','답변의 한계'));const list=el('ul');for(const t of limits)list.append(el('li',t));body.append(list)}}
-function overview(){const box=$('#overview');box.replaceChildren();const review=data.baseline_review;if(review){box.append(el('h2','첫 실행 13개 CQ의 의미 평가'));const counts={};for(const r of review.cases)counts[grade({semantic_grade:r.grade})]=(counts[grade({semantic_grade:r.grade})]||0)+1;box.append(el('p',Object.entries(counts).map(([k,v])=>`${k} ${v}개`).join(' · ')));box.append(el('p','일부 근거를 올바르게 사용했더라도 중요한 계산·상태·시점을 잘못 설명한 답변은 통과시키지 않습니다. 재실행 결과는 아래에서 별도로 확인합니다.','muted'))}if(data.efficiency){box.append(el('h2','실제 그래프 배치 효율'));const table=el('table');const heading=el('tr');for(const t of ['대상','그래프 쿼리','중앙 실행시간'])heading.append(el('th',t));table.append(heading);for(const r of data.efficiency.summary){const row=el('tr');for(const t of [r.scope==='ETF_all'?'ETF 전체 보유':`${r.scope}개 종목`,r.graph_query_counts.join(', ')+'회',r.median_ms.toFixed(1)+' ms'])row.append(el('td',t));table.append(row)}box.append(table,el('p','가격 조회 → 종가 변화 계산 → 방향별 분포. 범위별 3회, 표시 페이지 2행이어도 전체 대상을 계산했습니다. 모델의 자율 탐색 성능이나 DB 내부 SQL 수를 뜻하지 않습니다.','muted'))}}
-function agentEfficiency(){const rows=data.efficiency?.agent_comparison;if(!rows)return;const box=$('#overview');box.append(el('h2','에이전트 자율 탐색: 종목 목록 해소 개선 전후'));const table=el('table');const head=el('tr');for(const t of ['종목 수','도구 호출 전 → 후','그래프 쿼리 전 → 후'])head.append(el('th',t));table.append(head);for(const r of rows){const row=el('tr');for(const t of [r.scope,`${r.before.tool_calls} → ${r.after.tool_calls}`,`${r.before.graph_queries} → ${r.after.graph_queries}`])row.append(el('td',String(t)));table.append(row)}box.append(table,el('p','동일 질문·대상·시점의 실제 에이전트 실행 각 1회입니다. 모든 요청 종목이 계산까지 도달했음을 별도 확인했습니다. 호출 감소를 답변의 의미 합격으로 대신하지 않습니다.','muted'))}
-function capabilities(){const catalog=data.tool_capabilities;if(!catalog)return;const section=el('details');section.id='capabilities';section.append(el('summary',`도구 ${catalog.registered_count}개: 목적과 실제 지원 범위`));const table=el('table');const head=el('tr');for(const label of ['도구·목적','지원 범위'])head.append(el('th',label));table.append(head);for(const tool of catalog.tools){const row=el('tr');const title=el('td');title.append(el('code',tool.name),el('div',tool.purpose));row.append(title,el('td',tool.limitation||'기재된 기능 구현 · 실제 CQ 성공 여부는 별도 평가'));table.append(row)}section.append(table);$('#overview').append(section)}
-function latestCases(){const rows=data.latest_cases||[];if(!rows.length)return;const box=$('#overview');box.append(el('h2','CQ별 최신 실행'));const list=el('div',undefined,'latest-cases');for(const r of rows){const button=el('button',`${r.case} · ${grade(r)}`);button.onclick=()=>{select(data.runs.find(x=>x.run_id===r.run_id));$('#detail').scrollIntoView({behavior:'smooth'})};list.append(button)}box.append(list,el('p','각 질문의 가장 최근 실행만 집계합니다. 이전 통과 기록으로 새 실패나 미평가를 덮지 않습니다.','muted'))}
-function renderRuns(){overview();latestCases();agentEfficiency();capabilities();$('#runs').replaceChildren();for(const r of data.runs){const b=el('button',`${r.case} · ${grade(r)}`,'run'+(r.run_id===current?' selected':''));b.append(el('small',r.run_id));b.onclick=()=>select(r);$('#runs').append(b)}if(!data.runs.length)$('#runs').append(el('p','아직 실행 기록이 없습니다.','muted'))}
-async function load(){try{const r=await fetch('/api/cq-benchmark');if(!r.ok)throw new Error('벤치마크를 불러올 수 없습니다.');data=await r.json();$('#notice').textContent=data.notice;$('#metrics').replaceChildren();for(const [label,value,note] of [['실행한 에이전트 테스트',data.runs.length,'재실행도 별도 기록'],['최신 CQ 통과',(data.latest_cases||[]).filter(x=>x.semantic_grade==='passed').length,`전체 계획 ${data.planned_cqs}개 CQ · 질문별 최신 실행`],['목적에 맞는 데이터 사용','미측정','목표 80% · 출처 수로 채점하지 않음'],['전체 도구 구현','진행 중','지원 여부와 CQ 성공을 구분']]){const box=el('div',label,'metric');box.append(el('strong',String(value)),el('span',note));$('#metrics').append(box)}renderRuns();const selected=data.runs.find(x=>x.run_id===current)||data.runs[0];if(selected)select(selected)}catch(e){$('#notice').textContent=e.message}}
-$('#refresh').onclick=load;$('#closeEvidence').onclick=()=>$('#evidence').close();load();
+const {el,request,showEvidence,badge}=CQ;
+const $=s=>document.querySelector(s);
+let data,current,selection=0;
+function link(text,url,cls){const a=el('a',text,cls);a.href=url;return a}
+function caseId(run){return /^CQ\d{2}/.exec(run?.case||'')?.[0]}
+function renderCases(){
+  $('#runs').replaceChildren();
+  for(const c of data.cases){
+    const runs=data.runs.filter(r=>caseId(r)===c.id),latest=data.latest_cases.find(r=>r.case===c.id);
+    const b=el('button',undefined,'run'+(caseId(current)===c.id?' selected':''));
+    b.append(el('strong',c.id),el('span',c.title||c.question),el('small',runs.length+'회 실행'));b.title=c.question;
+    b.onclick=()=>{const target=data.runs.find(r=>r.run_id===latest?.run_id)||runs[0];if(target)selectRun(target.run_id);else{selection++;current={case:c.id};renderCases();$('#detail').replaceChildren(el('h2',c.id),el('p',c.question),el('p','아직 저장된 실행이 없습니다.','muted'))}};
+    $('#runs').append(b);
+  }
+}
+function checkCard(check,run){
+  const card=el('div',undefined,'check '+check.status),head=el('div',undefined,'check-heading');
+  head.append(el('strong',check.name),badge(check.status));card.append(head,el('p',check.reason,'check-reason'));
+  if(check.answer_span)card.append(el('blockquote',check.answer_span));
+  for(const id of check.evidence_ids||[]){const b=el('button','근거 '+id.slice(-8),'evidence-button');b.onclick=()=>showEvidence(run.run_id,id);card.append(b)}
+  if(check.rule){const d=el('details');d.append(el('summary','판정 기준'),el('p',check.rule,'muted'));card.append(d)}
+  return card;
+}
+function section(title,description,checks,run){
+  const group=el('section',undefined,'evaluation-group');group.append(el('h3',title),el('p',description,'muted'));
+  for(const check of checks)group.append(checkCard(check,run));return group;
+}
+function renderDetail(detail){
+  const run=detail.run,e=detail.evaluation,c=e.contract;current=run;renderCases();
+  const body=$('#detail');body.replaceChildren();
+  const heading=el('div',undefined,'detail-heading'),title=el('div');
+  title.append(el('p',(caseId(run)||run.case)+' / 실행 평가','eyebrow'),el('h2',c?.title||run.case));
+  heading.append(title,link('에이전트 분석 보기 ↗',detail.analysis_url,'primary-link'));body.append(heading);
+  const state=el('div',undefined,'run-state');state.append(badge(e.overall),el('span',e.review_status==='current'?'평가 에이전트 판정 · 전문가 교정 전':run.status==='answered'?'답변 생성 완료':run.status==='running'?'실행 중':'실행 오류','muted'));body.append(state);
+  const select=el('select');select.id='runSelect';select.setAttribute('aria-label','같은 CQ의 실행 선택');
+  for(const r of data.runs.filter(r=>caseId(r)===caseId(run))){const o=el('option',r.run_id+' · '+(r.execution_host||r.status));o.value=r.run_id;o.selected=r.run_id===run.run_id;select.append(o)}
+  select.onchange=()=>selectRun(select.value);body.append(select,el('p','기준시각 '+run.cutoff+' · 모델 '+(run.model||'미기록'),'muted'));
+  const q=el('details');q.append(el('summary','실제 입력 질문'),el('p',run.question,'question'));body.append(q);
+  const note=el('div',undefined,'scope-note');note.append(el('strong','계산 재현 제외'),el('span','수치·단위·기간은 평가 에이전트가 문장과 근거를 대조합니다. 자동 수치 일치 검사로 표시하지 않습니다.'));body.append(note);
+  if(e.review_status!=='current')body.append(el('p',({missing:'새 계약의 에이전트 평가가 아직 없습니다.',stale:'답변·근거·계약이 바뀌어 기존 평가를 적용하지 않았습니다.',invalid:'저장된 평가 형식이나 인용이 유효하지 않습니다.'})[e.review_status]||'미평가','review-notice'));
+  if(e.reviewer)body.append(el('p','평가자 '+(e.reviewer.model||e.reviewer.method||'기록 확인')+' · 독립 의미 판정, 전문가 교정 전','muted'));
+  if(e.overall==='review_needed'&&e.agent_proposal==='pass')body.append(el('p','평가 에이전트는 통과를 제안했습니다. 아직 정확도가 검증되지 않은 평가자이므로 최종 합격으로 집계하지 않습니다.','review-notice'));
+  body.append(section('01 코드 검사','구조·참조·도구 기준시각을 저장 기록에서 확인합니다.',e.code_checks,run));
+  body.append(section('02 분석 평가','문제 문장과 저장 근거를 연결해 판단합니다.',e.agent_checks.filter(x=>x.group!=='termination'),run));
+  body.append(section('03 종료조건','TODO 완료와 조사 완료를 구분합니다.',e.agent_checks.filter(x=>x.group==='termination'),run));
+  renderEfficiency(body,e,run);
+  if(c){
+    const d=el('details',undefined,'contract');d.append(el('summary','CQ 평가 계약 · v'+c.version),el('h4','중대 오류'));
+    const errors=el('ul');for(const t of c.critical_errors)errors.append(el('li',t));
+    d.append(errors,el('h4','종료 요건'),el('p',c.completion_conditions),el('h4','참조 조사 흐름'));
+    const steps=el('ol');for(const t of c.reference_path)steps.append(el('li',t));
+    d.append(steps,el('p','대체 경로와 일괄 조회를 허용합니다. 이 흐름은 검증된 최소 호출 횟수가 아닙니다.','muted'));body.append(d);
+  }
+  if(run.review){const old=el('details',undefined,'legacy');old.append(el('summary','이전 방식의 검토 기록 · 새 평가에 합산하지 않음'));const list=el('ul');for(const t of run.review.findings||[])list.append(el('li',t));old.append(list);body.append(old)}
+  if(run.error)body.append(el('p',run.error,'review-notice'));
+}
+function renderEfficiency(body,e,run){
+  const f=e.efficiency,s=el('section',undefined,'evaluation-group');s.append(el('h3','04 호출 효율'));const stats=el('div',undefined,'stats-grid');
+  for(const [label,value] of [['모델 요청',f.model_calls==null?'미기록':f.model_calls+'회'],['저장된 도구 실행',f.actual_calls+'회'],['참조 호출','미설정'],['소요 시간',f.elapsed_ms==null?'미기록':(f.elapsed_ms/1000).toFixed(1)+'초'],['SDK 추정 비용',f.sdk_estimated_usd==null?'미기록':'$'+f.sdk_estimated_usd.toFixed(4)],['불필요한 반복',f.unnecessary_calls==null?'미평가':f.unnecessary_calls+'회']]){
+    const box=el('div');box.append(el('span',label),el('strong',value));stats.append(box);
+  }
+  s.append(stats,el('p',f.reference_reason+' 비용은 SDK의 기록된 추정치이며 실제 청구액이 아닙니다.','muted'));
+  for(const r of e.unnecessary_calls){const item=el('div',undefined,'check'),b=el('button','호출 확인');b.onclick=()=>showEvidence(run.run_id,r.tool_run_id);item.append(el('p',r.reason),b);s.append(item)}
+  s.append(link('실제 도구 호출 순서 보기 →',run.analysis_url+'#tools'));body.append(s);
+}
+async function selectRun(id,push=true){
+  const ticket=++selection;$('#detail').setAttribute('aria-busy','true');
+  try{const detail=await request('/api/cq-benchmark/detail?'+new URLSearchParams({run_id:id}));if(ticket!==selection)return;renderDetail(detail);if(push)history.pushState(null,'',detail.benchmark_url)}
+  catch(e){if(ticket===selection)$('#detail').replaceChildren(el('h2','실행을 불러올 수 없습니다.'),el('p',e.message))}
+  finally{if(ticket===selection)$('#detail').removeAttribute('aria-busy')}
+}
+function support(){
+  const target=$('#overview');target.replaceChildren();const d=el('details');d.id='capabilities';d.append(el('summary','도구 '+(data.tool_capabilities?.registered_count||0)+'개 · 지원 범위'));
+  for(const t of data.tool_capabilities?.tools||[]){const item=el('p');item.append(el('strong',t.name+' · '),document.createTextNode(t.purpose+' — '+(t.limitation||'기재된 기능 구현')));d.append(item)}target.append(d);
+}
+async function load(){try{
+  data=await request('/api/cq-benchmark');$('#notice').textContent='CQ별 공통 검사, 분석 품질, 종료조건과 호출 효율을 확인합니다. 과거 검토와 새 계약의 판정을 구분합니다.';
+  $('#metrics').replaceChildren();for(const [label,value] of [['평가 대상',data.cases.length+'개 CQ'],['저장된 실행',data.runs.length+'회'],['계산 재현','제외'],['자료 활용 80%','미측정']]){const box=el('div',label,'metric');box.append(el('strong',value));$('#metrics').append(box)}
+  support();renderCases();const id=new URLSearchParams(location.search).get('run_id')||current?.run_id||data.latest_cases[0]?.run_id||data.runs[0]?.run_id;if(id)await selectRun(id,false);
+}catch(e){$('#notice').textContent=e.message}}
+$('#refresh').onclick=load;$('#closeEvidence').onclick=()=>$('#evidence').close();window.addEventListener('popstate',()=>{const id=new URLSearchParams(location.search).get('run_id');if(id)selectRun(id,false);else load()});load();
