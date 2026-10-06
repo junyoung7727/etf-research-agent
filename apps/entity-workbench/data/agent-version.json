@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "summary": "버전별 전체 CQ 표, 실행 구성·평가 계약 고정, 버전 갱신 강제 검사",
+  "source_digest": "136f1a6951585ad62a90eb61293c2703079ab592a7601b24ea5d85fb63c3d6db",
+  "history": [
+    {
+      "version": 1,
+      "summary": "전체 CQ 평가표와 에이전트 버전별 실행·평가 계약 기록",
+      "source_digest": "17ee586341ddd65edb63a1aaa7b2538a4303420699cdbc9fc757e809a2a0fe2b"
+    }
+  ]
+}

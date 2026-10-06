@@ -7,6 +7,33 @@ from backend import cq_benchmark
 
 
 class BenchmarkTests(unittest.TestCase):
+    def test_matrix_keeps_versions_separate_and_never_hides_latest_failure(self):
+        cases=[{'id':f'CQ{i:02}','title':f'Question {i}'} for i in range(1,14)]
+        runs=[{'run_id':name,'case':'CQ01','status':status,'agent_version':{'id':version}} for name,status,version in [
+            ('CQ01-suite-20261005T100000Z','answered','v1'),
+            ('CQ01-suite-20261005T110000Z','error','v1'),
+            ('CQ01-suite-20261005T120000Z','answered','v2'),
+            ('CQ01-pilot-20261005T130000Z','answered','v1')]]
+        catalog={'cases':cases,'runs':runs,'agent_versions':[{'id':'v1','run_count':3},{'id':'v2','run_count':1},
+            {'id':'v3','run_count':0}]}
+        result={'overall':'fail','review_status':'missing','agent_checks':[],
+            'code_checks':[{'status':'fail'}],'contract':{'version':3}}
+        with patch.object(cq_benchmark,'catalog',return_value=catalog),patch.object(cq_benchmark,'run_directory',side_effect=lambda x:x),patch.object(cq_benchmark,'evaluate',return_value=result):
+            one=cq_benchmark.matrix('v1');two=cq_benchmark.matrix('v2');empty=cq_benchmark.matrix('v3')
+            self.assertEqual(len(one['rows']),13)
+            self.assertEqual(one['rows'][0]['run_id'],'CQ01-suite-20261005T110000Z')
+            self.assertEqual(one['rows'][0]['execution_status'],'error')
+            self.assertEqual(one['rows'][1]['overall'],'not_run')
+            self.assertEqual(two['rows'][0]['run_id'],'CQ01-suite-20261005T120000Z')
+            self.assertTrue(all(r['overall']=='not_run' for r in empty['rows']))
+            with self.assertRaises(ValueError):cq_benchmark.matrix('unknown-version')
+
+    def test_old_runs_are_not_assigned_to_the_current_release(self):
+        with patch.object(cq_benchmark,'release',return_value={'version':1,'source_digest':'new','summary':'Initial'}):
+            versions=cq_benchmark.version_index([{'code_commit':'old','case':'CQ01'}])
+        self.assertEqual(cq_benchmark.version_id({'code_commit':'old'}),'unversioned')
+        self.assertEqual({v['id'] for v in versions},{'unversioned','release-1-unrun'})
+
     def test_final_output_requires_actual_claims_with_successful_evidence_for_each(self):
         from integration.run_cq_agent import valid_citations,OUTPUT
         from jsonschema import Draft202012Validator

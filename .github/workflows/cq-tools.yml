@@ -25,3 +25,4 @@ jobs:
           tests.test_cq_store tests.test_cq_graph tests.test_cq_tools
           tests.test_cq_events tests.test_cq_market tests.test_cq_financial
           tests.test_cq_context tests.test_cq_holdings tests.test_cq_benchmark
+          tests.test_cq_evaluation tests.test_agent_version
