@@ -28,7 +28,7 @@ def catalog():
     review=RUNS.parent/'baseline-review.json';efficiency=RUNS.parent/'efficiency/report.json'
     capabilities=APP/'data/cq-tool-capabilities.json'
     cases=json.loads((APP/'data/cq-cases.json').read_text(encoding='utf8'))['cases']
-    return {'runs':runs,'cases':[{'id':c['id'],'title':contract_for(c['id'])['title'],'question':c['canonical_question']} for c in cases],
+    return {'runs':runs,'cases':[{'id':c['id'],'title':contract_for(c['id'])['title'],'question':c['canonical_question'],'scenario_question':c['question']} for c in cases],
         'latest_cases':latest_cases(runs),'coverage':{'status':'not_measured','target':0.8,
         'definition':'질문 목적에 실제 기여한 객체·관계 사용. 조회 건수나 출처 수로 채점하지 않습니다.'},
         'baseline_review':json.loads(review.read_text(encoding='utf8')) if review.exists() else None,
