@@ -102,6 +102,13 @@ class EvaluationTests(unittest.TestCase):
         self.assertEqual(result['overall'],'not_evaluated')
         self.assertEqual(result['review_status'],'stale')
 
+    def test_frozen_run_contract_survives_later_contract_changes(self):
+        evaluation.freeze_contract(self.run,self.report['case'])
+        evaluation.save_review(self.run,self.review(),reviewer={'model':'test'})
+        with patch.object(evaluation,'contract_for',side_effect=AssertionError('Must use the run contract')):
+            self.assertEqual(self.result()['overall'],'pass')
+        with self.assertRaises(FileExistsError):evaluation.freeze_contract(self.run,self.report['case'])
+
     def test_unnecessary_call_requires_reason_and_distinct_real_id(self):
         review=self.review();review['unnecessary_calls']=[{'tool_run_id':self.id,'reason':'같은 범위의 목적 없는 반복'}]
         evaluation.save_review(self.run,review,reviewer={'model':'test'})
@@ -190,7 +197,7 @@ class EvaluationTests(unittest.TestCase):
 
         sdk=SimpleNamespace(ClaudeAgentOptions=lambda **kwargs:kwargs,ClaudeSDKClient=Client,
             create_sdk_mcp_server=lambda **kwargs:kwargs,tool=tool)
-        with patch.dict(sys.modules,{'claude_agent_sdk':sdk}):
+        with patch.dict(sys.modules,{'claude_agent_sdk':sdk}),patch('integration.judge_cq.check',return_value={'version':1,'source_digest':'fixture'}):
             result=asyncio.run(judge(self.run,model='fixture',key='test-key'))
         self.assertEqual(len(clients),1)
         self.assertEqual(len(submitted),1)

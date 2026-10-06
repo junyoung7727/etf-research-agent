@@ -61,6 +61,8 @@ in `tools/` record the mistake that motivated the line.
 
 ## Before you open the PR
 
+- Agent-related app code, tools, skills, model definitions, SQL views and prompts require a new agent release. After edits, run `python apps/entity-workbench/integration/version_agent.py bump --summary "Describe the change"`, then `python apps/entity-workbench/integration/version_agent.py check`. Commit the registry with the change. The Agent version CI check rejects reused versions and changes to published history; analysis execution and cloud packaging also reject unregistered sources. See [CQ evaluation](apps/entity-workbench/docs/cq-evaluation.md).
+
 - No API keys, tokens, account numbers, or personal holdings in the diff. `.env` and
   `private/` are gitignored; check anything new you added. See [SECURITY.md](SECURITY.md).
 - Real output pasted in the PR body, not a description of what it would print.

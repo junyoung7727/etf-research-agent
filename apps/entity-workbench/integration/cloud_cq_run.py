@@ -15,6 +15,8 @@ ROOT=Path(__file__).resolve().parent
 APP=ROOT/'apps/entity-workbench'
 sys.path.insert(0,str(APP));sys.path.insert(0,str(APP/'integration'))
 from backend.cq_tools import CQTools
+from backend.agent_version import release,snapshot
+from backend.cq_evaluation import freeze_contract
 from run_cq_agent import PROMPT,OUTPUT,model_call_count,valid_citations
 from edge_analysis_v2.agent.runner import run_model
 
@@ -25,10 +27,12 @@ async def main():
     contract=json.loads((APP/'data/cq-cases.json').read_text(encoding='utf8'))
     case=next(c for c in contract['cases'] if c['id']==os.environ['CQ_CASE'])
     directory=ROOT/'result';directory.mkdir()
+    freeze_contract(directory,case['id'])
     report={'case':case['id']+'-cloud','kind':'real_v2_agent','execution_host':'AWS ECS Fargate',
         'question':case['question'],'cutoff':contract['cutoff'],'status':'running','semantic_grade':'not_reviewed',
         'code_commit':os.environ['CQ_COMMIT'],'bundle_sha256':os.environ['CQ_BUNDLE_SHA'],
         'coverage':'not_measured','model':'deepseek-flash'}
+    report['agent_version']=snapshot(release(ROOT),Path(sys.modules[run_model.__module__].__file__).parents[1],catalog,report['model'])
     credentials=json.loads(aws.client('ssm').get_parameter(Name=os.environ['GRAPH_PARAMETER'],WithDecryption=True)['Parameter']['Value'])
     secret=json.loads(aws.client('secretsmanager').get_secret_value(SecretId=os.environ['DEEPSEEK_SECRET_ARN'])['SecretString'])
     key=secret['DEEPSEEK_API_KEY'];provider=None;started=perf_counter()

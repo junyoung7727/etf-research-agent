@@ -330,6 +330,9 @@ class Handler(BaseHTTPRequestHandler):
             if u.path=='/api/cq-benchmark':
                 from backend.cq_benchmark import catalog
                 return self.reply(200,catalog())
+            if u.path=='/api/cq-benchmark/matrix':
+                from backend.cq_benchmark import matrix
+                return self.reply(200,matrix(**q))
             if u.path=='/api/cq-benchmark/evidence':
                 from backend.cq_benchmark import evidence
                 return self.reply(200,evidence(**q))

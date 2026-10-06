@@ -14,6 +14,8 @@ sys.path.insert(0,str(APP))
 from backend.cq_tools import CQTools
 from backend.puppygraph_viewer import reader
 from backend.view_design import read_catalog
+from backend.agent_version import check,snapshot
+from backend.cq_evaluation import freeze_contract
 
 OUTPUT={'type':'object','properties':{
     'answer':{'type':'string','minLength':1},'limitations':{'type':'array','items':{'type':'string'}},
@@ -73,13 +75,17 @@ def model_call_count(directory):
 
 
 async def execute(args):
+    registered=check(APP.parents[1])
     sys.path.insert(0,str(Path(args.v2_source).resolve()))
     from edge_analysis_v2.agent.runner import run_model
     key=os.environ.get('DEEPSEEK_API_KEY')
     if not key:raise ValueError('DEEPSEEK_API_KEY is required for a real agent benchmark')
+    catalog=read_catalog();model=os.environ.get('DEEPSEEK_MODEL','deepseek-flash')
+    version=snapshot(registered,Path(sys.modules[run_model.__module__].__file__).parents[1],catalog,model)
     root=APP.parents[1]/'output/cq-tools-benchmark-20261005/agent-runs'
     directory=root/(args.case+'-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ'))
     directory.mkdir(parents=True)
+    freeze_contract(directory,args.case)
     code=directory/'code';code.mkdir()
     for path in sorted((APP/'backend').glob('cq_*.py')):
         (code/path.name).write_bytes(path.read_bytes())
@@ -87,12 +93,11 @@ async def execute(args):
     question=args.question or '2026년 10월 5일까지 알려진 자료로 PLUS K방산의 보유 기업들이 9월에 공급자로 참여한 계약 체결 소식 중 총액이 1,000억 원 이상으로 확인되는 사례를 찾아 줘. 금액과 계약기간, 해당 기업의 역할, 원문 근거를 보여 주고 조건을 확인할 수 없는 사례는 구분해 줘. 대표 사례 세 개 이내로 설명해 줘.'
     started=perf_counter()
     report={'case':args.case,'question':question,'cutoff':args.cutoff,'kind':'real_v2_agent',
-        'execution_host':'local runner with cloud PuppyGraph','model':os.environ.get('DEEPSEEK_MODEL','deepseek-flash'),
+        'execution_host':'local runner with cloud PuppyGraph','model':model,'agent_version':version,
         'status':'running','semantic_grade':'not_reviewed','coverage':'not_measured','code_hash':code_hash}
     (directory/'benchmark.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf8')
     provider=None
     try:
-        catalog=read_catalog()
         (directory/'graph-catalog.json').write_text(json.dumps(catalog,ensure_ascii=False,sort_keys=True),encoding='utf8')
         report['catalog_hash']=hashlib.sha256((directory/'graph-catalog.json').read_bytes()).hexdigest()
         contract=APP/'data/cq-coverage-contract.json'

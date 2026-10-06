@@ -16,17 +16,21 @@ APP=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(APP))
 from backend.view_design import read_catalog
 from integration.pilot_session import state
+from backend.agent_version import check
 
 
 def launch(case,checkout):
     checkout=Path(checkout).resolve();source=checkout/'apps/entity-workbench'
+    if checkout!=APP.parents[1].resolve():raise ValueError('Run the launcher from the selected checkout')
+    check(checkout)
     if subprocess.check_output(['git','status','--porcelain'],cwd=checkout,text=True).strip():raise ValueError('Commit the cloud bundle sources first')
     sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=checkout,text=True).strip()
     data=io.BytesIO()
     with zipfile.ZipFile(data,'w',zipfile.ZIP_DEFLATED) as archive:
         for folder in ('backend','ontology/oms'):
             for path in (source/folder).glob('*.py'):archive.write(path,'apps/entity-workbench/'+path.relative_to(source).as_posix())
-        for path in ['paths.py','integration/run_cq_agent.py','data/cq-cases.json','data/cq-coverage-contract.json']:
+        for path in ['paths.py','integration/run_cq_agent.py','data/cq-cases.json','data/cq-coverage-contract.json',
+                     'data/cq-evaluation-contract.json','data/agent-version.json']:
             archive.write(source/path,'apps/entity-workbench/'+path)
         archive.write(source/'integration/cloud_cq_run.py','cloud_cq_run.py')
         archive.writestr('graph-catalog.json',json.dumps(read_catalog(),ensure_ascii=False))

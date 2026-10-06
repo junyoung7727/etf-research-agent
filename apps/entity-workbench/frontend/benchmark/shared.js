@@ -1,7 +1,7 @@
 window.CQ=(()=>{
   function el(tag,text,cls){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(cls)node.className=cls;return node}
   async function request(url){const r=await fetch(url);const value=await r.json();if(!r.ok)throw new Error(value.error||'조회 실패');return value}
-  const labels={pass:'통과',fail:'실패',unknown:'판정 보류',not_evaluated:'미평가',review_needed:'검토 필요',incomplete:'실행 미완료'};
+  const labels={pass:'통과',fail:'실패',unknown:'판정 보류',not_evaluated:'미평가',review_needed:'검토 필요',incomplete:'실행 미완료',not_run:'미실행'};
   function statusLabel(value){return labels[value]||value}
   function badge(value){return el('span',statusLabel(value),'badge '+value)}
   function json(target,value){

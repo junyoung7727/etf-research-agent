@@ -1,0 +1,26 @@
+name: Agent version
+on: [pull_request, push]
+permissions:
+  contents: read
+jobs:
+  agent-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Require a release for agent changes
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        shell: bash
+        run: |
+          if [[ -n "$BASE" && "$BASE" != 0000000000000000000000000000000000000000 ]]; then
+            python apps/entity-workbench/integration/version_agent.py check --base "$BASE"
+          else
+            python apps/entity-workbench/integration/version_agent.py check
+          fi
+      - name: Verify version enforcement
+        run: python -m unittest discover -s apps/entity-workbench/tests -t apps/entity-workbench -p test_agent_version.py
