@@ -333,6 +333,9 @@ class Handler(BaseHTTPRequestHandler):
             if u.path=='/api/cq-benchmark/evidence':
                 from backend.cq_benchmark import evidence
                 return self.reply(200,evidence(**q))
+            if u.path in ('/api/cq-benchmark/detail','/api/cq-benchmark/trace','/api/cq-benchmark/artifact'):
+                from backend import cq_benchmark
+                return self.reply(200,getattr(cq_benchmark,u.path.rsplit('/',1)[-1])(**q))
             if u.path.startswith('/api/puppygraph/'):
                 from backend import puppygraph_viewer as viewer
                 if u.path=='/api/puppygraph/catalog': return self.reply(200,viewer.catalog())
@@ -361,6 +364,7 @@ class Handler(BaseHTTPRequestHandler):
                 files.update({'/puppygraph':'puppygraph/index.html','/puppygraph.js':'puppygraph/app.js','/puppygraph.css':'puppygraph/style.css'})
                 files.update({'/puppygraph-exploration.js':'puppygraph/exploration.js','/vendor/vis-network.min.js':'vendor/vis-network.min.js'})
                 files.update({'/benchmark':'benchmark/index.html','/benchmark.js':'benchmark/app.js','/benchmark.css':'benchmark/style.css'})
+                files.update({'/benchmark/analysis':'benchmark/analysis.html','/benchmark-analysis.js':'benchmark/analysis.js','/benchmark-shared.js':'benchmark/shared.js'})
                 if u.path in files:
                     f=FRONTEND/files[u.path];types={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css'}
                     return self.reply(200,f.read_bytes(),types[f.suffix]+'; charset=utf-8')

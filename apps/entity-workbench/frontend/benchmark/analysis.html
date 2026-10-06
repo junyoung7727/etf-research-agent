@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ORCA · 에이전트 분석</title><link rel="stylesheet" href="/benchmark.css"></head>
+<body><header><a class="brand" href="/benchmark">ORCA <span>/ AGENT ANALYSIS</span></a><nav><a id="backBenchmark" href="/benchmark">CQ 평가로 돌아가기</a><a href="/puppygraph">PuppyGraph</a></nav></header>
+<main class="analysis-main"><p class="eyebrow">저장된 실제 실행</p><h1 id="title">에이전트 분석</h1><p id="runInfo" role="status">불러오는 중…</p>
+<div class="analysis-tabs" role="tablist" aria-label="분석 보기"><button role="tab" id="tab-summary" aria-controls="summary" aria-selected="true" data-tab="summary">최종 답변</button><button role="tab" id="tab-tools" aria-controls="tools" aria-selected="false" data-tab="tools">도구 호출</button><button role="tab" id="tab-trace" aria-controls="trace" aria-selected="false" data-tab="trace">실행 원문</button></div>
+<article id="summary" role="tabpanel" aria-labelledby="tab-summary"></article><article id="tools" role="tabpanel" aria-labelledby="tab-tools" hidden></article><article id="trace" role="tabpanel" aria-labelledby="tab-trace" hidden></article>
+</main><dialog id="evidence"><div class="dialog-heading"><h2>저장된 원문</h2><button id="closeEvidence">닫기</button></div><pre id="evidenceBody"></pre></dialog>
+<script src="/benchmark-shared.js" defer></script><script src="/benchmark-analysis.js" defer></script></body></html>
