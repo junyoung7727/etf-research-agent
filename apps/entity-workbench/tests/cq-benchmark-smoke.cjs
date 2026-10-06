@@ -11,6 +11,15 @@ const base=process.env.BENCHMARK_URL||'http://127.0.0.1:5188';
   const latest=catalog.latest_cases.find(r=>r.case==='CQ05'),run=latest.run_id;
   await page.goto(base+'/benchmark?run_id='+run);
   await page.waitForSelector('#runSelect');
+  await page.waitForSelector('.trend-version');
+  const trendResponse=await page.request.get(base+'/api/cq-benchmark/trend'),trend=await trendResponse.json();
+  assert.deepEqual(trend.points.map(p=>p.release),trend.points.map(p=>p.release).sort((a,b)=>a-b));
+  assert.equal(await page.locator('.trend-version').count(),trend.points.length);
+  assert.equal(trend.points.some(p=>p.id==='unversioned'),false);
+  for(const point of trend.points){
+    assert.equal(point.total.pass,point.common.pass+point.cq.pass);
+    assert.equal(point.total.total,52);
+  }
   assert.equal(await page.locator('.run').count(),13);
   assert.equal(await page.locator('#runSelect').inputValue(),run);
   assert.equal(await page.locator('#matrixTable tbody tr').count(),13);
@@ -95,6 +104,26 @@ const base=process.env.BENCHMARK_URL||'http://127.0.0.1:5188';
   await page.waitForFunction(()=>document.querySelector('#evidenceBody').textContent.includes('tool_run_id'));
   await page.locator('#closeEvidence').click();
   await page.unroute('**/api/cq-benchmark/detail?*');
+  // Display sample counts without saving synthetic evaluations to real runs.
+  const sample=JSON.parse(JSON.stringify(trend));
+  assert.ok(sample.points.length>=3);
+  for(const [index,point] of sample.points.entries()){
+    for(const group of ['common','cq','total'])point[group].plotted_pass=null;
+    if(index!==0&&index!==sample.points.length-1)continue;
+    point.executed_cqs=2;
+    for(const [group,passed] of [['common',index===0?2:3],['cq',index===0?1:2],['total',index===0?3:5]]){
+      Object.assign(point[group],{pass:passed,fail:0,unknown:0,not_run:0,not_evaluated:point[group].total-passed,plotted_pass:passed});
+    }
+  }
+  await page.route('**/api/cq-benchmark/trend',route=>route.fulfill({json:sample}));
+  await page.goto(base+'/benchmark?run_id='+run);await page.waitForSelector('#trendChart circle');
+  assert.deepEqual(await page.locator('#trendChart circle[data-series=total]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('data-value'))),['3','5']);
+  assert.equal(await page.locator('#trendChart polyline').count(),0); // No invented interpolation across missing evaluations.
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await page.locator('.trend-version').last().click();
+  await page.waitForFunction(id=>document.querySelector('#versionSelect').value===id,sample.points.at(-1).id);
+  assert.equal(await page.locator('.trend-version').last().getAttribute('aria-pressed'),'true');
+  await page.unroute('**/api/cq-benchmark/trend');
   const oldRun=catalog.latest_cases.find(r=>r.case==='CQ01').run_id;
   await page.goto(base+'/benchmark?run_id='+oldRun);await page.waitForSelector('#runSelect');
   assert.match(await page.locator('#currentQuestion').innerText(),/KODEX 방산/);

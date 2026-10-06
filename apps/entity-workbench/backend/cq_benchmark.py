@@ -62,7 +62,12 @@ def matrix(version=''):
     data=catalog();versions=data['agent_versions']
     selected=next((v for v in versions if v['id']==version),None) if version else next((v for v in versions if v['run_count']),versions[0])
     if selected is None:raise ValueError('Unknown agent version')
-    runs=[r for r in data['runs'] if version_id(r)==selected['id']]
+    return {'version':selected['id'],'versions':versions,'rows':matrix_rows(data,selected['id']),
+            'selection_rule':'같은 에이전트 버전에서 CQ별 가장 최근 정규 실행을 표시합니다. 실패한 최신 실행도 포함합니다.'}
+
+
+def matrix_rows(data,version):
+    runs=[r for r in data['runs'] if version_id(r)==version]
     latest={r['case']:r['run_id'] for r in latest_cases(runs)}
     by_id={r['run_id']:r for r in runs};rows=[]
     for case in data['cases']:
@@ -79,8 +84,36 @@ def matrix(version=''):
                 evaluator_release=(result.get('reviewer') or {}).get('agent_release'),
                 contract_version=result['contract']['version'] if result['contract'] else None,**links(run_id))
         rows.append(row)
-    return {'version':selected['id'],'versions':versions,'rows':rows,
-            'selection_rule':'같은 에이전트 버전에서 CQ별 가장 최근 정규 실행을 표시합니다. 실패한 최신 실행도 포함합니다.'}
+    return rows
+
+
+def trend():
+    data=catalog();points=[]
+    for version in data['agent_versions']:
+        if version['id']=='unversioned':continue
+        rows=matrix_rows(data,version['id'])
+        point={k:version[k] for k in ('id','label','release')}
+        point['executed_cqs']=sum(bool(row['run_id']) for row in rows)
+        point['contract_versions']=sorted({row['contract_version'] for row in rows if row.get('contract_version') is not None})
+        stamps=[r['run_id'].rsplit('-',1)[-1] for r in data['runs'] if version_id(r)==version['id']
+                and re.search(r'-\d{8}T\d{6}Z$',r['run_id'])]
+        point['first_run']=min(stamps) if stamps else None
+        for group,ids in [('common',('accuracy','reasoning','research')),('cq',('fulfillment',))]:
+            counts={status:0 for status in ('pass','fail','unknown','not_evaluated','not_run')}
+            for row in rows:
+                checks={c['id']:c['status'] for c in row['checks']}
+                for identifier in ids:
+                    status=checks.get(identifier,'not_evaluated') if row['run_id'] else 'not_run'
+                    counts[status if status in counts else 'not_evaluated']+=1
+            point[group]=counts
+        point['total']={status:point['common'][status]+point['cq'][status] for status in point['common']}
+        for group in ('common','cq','total'):
+            counts=point[group];counts['total']=sum(counts.values())
+            counts['plotted_pass']=counts['pass'] if counts['pass']+counts['fail'] else None
+        points.append(point)
+    points.sort(key=lambda p:(p['release'],p['first_run'] or '',p['id']))
+    return {'points':points,'unversioned_runs':sum(version_id(r)=='unversioned' for r in data['runs']),
+            'note':'왼쪽부터 버전 등록 순서입니다. 같은 릴리스의 구성별 버전은 첫 실행 순서로 표시합니다. 항목별 평가자 판정 수이며 최종 합격 CQ 수와 다릅니다. 기술 검사는 합계에서 제외합니다.'}
 
 
 def run_directory(run_id):
