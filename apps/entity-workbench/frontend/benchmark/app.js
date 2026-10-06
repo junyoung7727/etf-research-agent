@@ -5,6 +5,47 @@ function link(text,url,cls){const a=el('a',text,cls);a.href=url;return a}
 function caseId(run){return /^CQ\d{2}/.exec(run?.case||'')?.[0]}
 function versionId(run){return run?.agent_version?.id||'unversioned'}
 function versionRuns(){return data.runs.filter(r=>versionId(r)===matrix?.version)}
+function selectTrendVersion(){for(const button of document.querySelectorAll('.trend-version'))button.setAttribute('aria-pressed',String(button.dataset.version===matrix?.version))}
+async function loadTrend(){
+  try{
+    const trend=await request('/api/cq-benchmark/trend'),points=trend.points,host=$('#trendChart');host.replaceChildren();
+    $('#trendNote').textContent=trend.note+' 버전 미기록 '+trend.unversioned_runs+'건은 추이에서 제외합니다. 미실행·미평가는 선으로 연결하지 않습니다.';
+    if(!points.length){host.append(el('p','등록된 버전이 없습니다.','muted'));return}
+    const width=Math.max(660,host.clientWidth,points.length*155+80),height=260,left=48,right=20,top=24,bottom=228;
+    const max=Math.max(1,...points.map(p=>p.total.total)),step=(width-left-right)/points.length;
+    const x=i=>left+step*(i+.5),y=value=>bottom-(bottom-top)*value/max;
+    const svg=(tag,attrs={},text)=>{const node=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value] of Object.entries(attrs))node.setAttribute(key,String(value));if(text!==undefined)node.textContent=text;return node};
+    const wrap=el('div',undefined,'trend-scroll'),chart=svg('svg',{width,height,viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':'버전별 전체·공통·CQ별 통과 개수. 왼쪽이 이전 버전, 오른쪽이 최신 버전.'});
+    wrap.tabIndex=0;wrap.setAttribute('role','region');wrap.setAttribute('aria-label','통과 추이 그래프와 버전 선택');
+    for(let tick=0;tick<=4;tick++){const value=Math.round(max*tick/4);chart.append(svg('line',{x1:left,x2:width-right,y1:y(value),y2:y(value),class:'trend-grid'}),svg('text',{x:left-10,y:y(value)+4,'text-anchor':'end',class:'trend-axis'},value+'개'))}
+    for(const [i,point] of points.entries()){
+      chart.append(svg('line',{x1:x(i),x2:x(i),y1:top,y2:bottom,class:'trend-guide'}));
+      if(point.total.plotted_pass===null)chart.append(svg('text',{x:x(i),y:height/2,'text-anchor':'middle',class:'trend-empty'},point.executed_cqs?'미평가':'미실행'));
+    }
+    const series=[['total','#182b39',''],['common','#237b8c','6 3'],['cq','#a36b20','2 3']];
+    for(const [group,color,dash] of series){
+      let segment=[];
+      const flush=()=>{if(segment.length>1)chart.append(svg('polyline',{points:segment.join(' '),fill:'none',stroke:color,'stroke-width':group==='total'?3:2,'stroke-dasharray':dash,'data-series':group}));segment=[]};
+      for(const [i,point] of points.entries()){
+        const count=point[group];if(count.plotted_pass===null){flush();continue}segment.push(x(i)+','+y(count.pass));
+      }flush();
+      for(const [i,point] of points.entries()){
+        const count=point[group];if(count.plotted_pass===null)continue;
+        const dot=svg('circle',{cx:x(i),cy:y(count.pass),r:group==='total'?5:4,fill:color,stroke:'#fff','stroke-width':1.5,'data-series':group,'data-value':count.pass});
+        dot.append(svg('title',{},point.label+' · '+({total:'전체',common:'공통',cq:'CQ별'})[group]+' '+count.pass+'/'+count.total+' 통과 · 실패 '+count.fail+' · 보류 '+count.unknown+' · 미평가 '+count.not_evaluated+' · 미실행 '+count.not_run));chart.append(dot);
+      }
+    }
+    const buttons=el('div',undefined,'trend-versions');buttons.style.width=width+'px';buttons.style.paddingLeft=left+'px';buttons.style.paddingRight=right+'px';buttons.style.gridTemplateColumns=`repeat(${points.length},minmax(0,1fr))`;
+    for(const point of points){
+      const count=group=>(point[group].plotted_pass===null?'—':point[group].pass)+' / '+point[group].total;
+      const button=el('button',undefined,'trend-version');button.dataset.version=point.id;
+      button.append(el('strong',point.label),el('span','전체 '+count('total')),el('small','공통 '+count('common')+' · CQ '+count('cq')));
+      button.title='실행 '+point.executed_cqs+' CQ · 실패 '+point.total.fail+' · 보류 '+point.total.unknown+' · 미평가 '+point.total.not_evaluated+' · 미실행 '+point.total.not_run+' · 평가 계약 '+(point.contract_versions.join(', ')||'없음');
+      button.onclick=async()=>{await chooseVersion(point.id);$('#matrixPanel').scrollIntoView({block:'start'})};buttons.append(button);
+    }
+    wrap.append(chart,buttons);host.append(wrap,el('p','항목 통과 수: 전체 = 공통 + CQ별. 평가 완료 범위가 다를 수 있으므로 같은 평가 계약과 실행 범위로 비교하세요.','muted'));selectTrendVersion();
+  }catch(error){$('#trendChart').replaceChildren(el('p',error.message,'review-notice'))}
+}
 function renderCases(){
   $('#runs').replaceChildren();
   for(const c of data.cases){
@@ -16,6 +57,7 @@ function renderCases(){
   }
 }
 function renderMatrix(){
+  selectTrendVersion();
   const select=$('#versionSelect');select.replaceChildren();
   for(const version of matrix.versions){const option=el('option',version.label+' · '+version.run_count+'회');option.value=version.id;option.selected=version.id===matrix.version;select.append(option)}
   const selected=matrix.versions.find(v=>v.id===matrix.version);
@@ -144,6 +186,6 @@ async function load(){try{
   data=await request('/api/cq-benchmark');$('#notice').textContent='CQ별 공통 검사, 분석 품질, 종료조건과 호출 효율을 확인합니다. 과거 검토와 새 계약의 판정을 구분합니다.';
   $('#metrics').replaceChildren();for(const [label,value] of [['평가 대상',data.cases.length+'개 CQ'],['저장된 실행',data.runs.length+'회'],['계산 재현','제외'],['자료 활용 80%','미측정']]){const box=el('div',label,'metric');box.append(el('strong',value));$('#metrics').append(box)}
   support();const query=new URLSearchParams(location.search),id=query.get('run_id')||current?.run_id||'';
-  const version=query.get('version')||(id?versionId(data.runs.find(r=>r.run_id===id)):'');await chooseVersion(version,id,false);
+  const version=query.get('version')||(id?versionId(data.runs.find(r=>r.run_id===id)):'');await chooseVersion(version,id,false);await loadTrend();
 }catch(e){$('#notice').textContent=e.message}}
 $('#versionSelect').onchange=()=>chooseVersion($('#versionSelect').value);$('#refresh').onclick=load;$('#closeEvidence').onclick=()=>$('#evidence').close();window.addEventListener('popstate',()=>{const query=new URLSearchParams(location.search);chooseVersion(query.get('version')||'',query.get('run_id')||'',false)});load();

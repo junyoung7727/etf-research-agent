@@ -7,6 +7,43 @@ from backend import cq_benchmark
 
 
 class BenchmarkTests(unittest.TestCase):
+    def test_trend_orders_releases_and_counts_criteria_without_turning_missing_into_failure(self):
+        versions=[{'id':'v2','release':2,'label':'v2','run_count':1},
+            {'id':'unversioned','release':0,'label':'unknown','run_count':9},
+            {'id':'v1','release':1,'label':'v1','run_count':1},
+            {'id':'v3','release':3,'label':'v3','run_count':0}]
+        data={'agent_versions':versions,'runs':[]}
+        def rows(data,version):
+            checks=[{'id':identifier,'group':group,'status':status} for identifier,group,status in [
+                ('accuracy','common','pass'),('reasoning','common','fail'),
+                ('research','common','unknown'),('fulfillment','cq','pass')]]
+            return [{'run_id':None if version=='v3' else 'run','checks':[] if version=='v3' else checks,
+                     'contract_version':3}]
+        with patch.object(cq_benchmark,'catalog',return_value=data),patch.object(cq_benchmark,'matrix_rows',side_effect=rows):
+            points=cq_benchmark.trend()['points']
+        self.assertEqual([p['id'] for p in points],['v1','v2','v3'])
+        self.assertEqual(points[0]['common']['pass'],1)
+        self.assertEqual(points[0]['common']['fail'],1)
+        self.assertEqual(points[0]['common']['unknown'],1)
+        self.assertEqual(points[0]['common']['total'],3)
+        self.assertEqual(points[0]['cq']['pass'],1)
+        self.assertEqual(points[0]['total']['pass'],2)
+        self.assertEqual(points[0]['total']['total'],4)
+        self.assertEqual(points[0]['total']['unknown'],1)
+        self.assertEqual(points[2]['common']['not_run'],3)
+        self.assertEqual(points[2]['common']['fail'],0)
+        self.assertIsNone(points[2]['common']['plotted_pass'])
+        self.assertIsNone(points[2]['total']['plotted_pass'])
+
+    def test_trend_distinguishes_actual_zero_passes_from_an_unevaluated_run(self):
+        data={'agent_versions':[{'id':'v1','release':1,'label':'v1','run_count':1}],'runs':[]}
+        row={'run_id':'run','checks':[{'id':'accuracy','status':'fail'}],'contract_version':3}
+        with patch.object(cq_benchmark,'catalog',return_value=data),patch.object(cq_benchmark,'matrix_rows',return_value=[row]):
+            point=cq_benchmark.trend()['points'][0]
+        self.assertEqual(point['common']['plotted_pass'],0)
+        self.assertEqual(point['common']['not_evaluated'],2)
+        self.assertIsNone(point['cq']['plotted_pass'])
+
     def test_matrix_keeps_versions_separate_and_never_hides_latest_failure(self):
         cases=[{'id':f'CQ{i:02}','title':f'Question {i}'} for i in range(1,14)]
         runs=[{'run_id':name,'case':'CQ01','status':status,'agent_version':{'id':version}} for name,status,version in [

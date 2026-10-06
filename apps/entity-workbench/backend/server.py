@@ -333,6 +333,9 @@ class Handler(BaseHTTPRequestHandler):
             if u.path=='/api/cq-benchmark/matrix':
                 from backend.cq_benchmark import matrix
                 return self.reply(200,matrix(**q))
+            if u.path=='/api/cq-benchmark/trend':
+                from backend.cq_benchmark import trend
+                return self.reply(200,trend())
             if u.path=='/api/cq-benchmark/evidence':
                 from backend.cq_benchmark import evidence
                 return self.reply(200,evidence(**q))
